@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Hub - Trung Tâm Quản Lý & Lưu Trữ Thông Tin Cá Nhân</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Marked.js for Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Chart.js for Financial & Habit Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-200 selection:bg-indigo-500 selection:text-white">
+
+  <!-- Main App Shell -->
+  <div class="flex h-screen overflow-hidden">
+
+    <!-- Desktop Sidebar Navigation -->
+    <aside class="hidden md:flex flex-col w-64 lg:w-72 bg-white dark:bg-slate-800/90 border-r border-slate-200/80 dark:border-slate-800 p-4 shrink-0 justify-between select-none">
+      <div class="space-y-6">
+        <!-- Logo & Branding -->
+        <div class="flex items-center gap-3 px-2 py-1 cursor-pointer" onclick="window.app.navigate('dashboard')">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">Personal Hub</h1>
+            <p class="text-[10px] text-slate-400 font-medium">Second Brain & Safe Vault</p>
+          </div>
+        </div>
+
+        <!-- Search Bar Shortcut -->
+        <button 
+          onclick="window.app.openGlobalSearch()" 
+          class="w-full flex items-center justify-between px-3 py-2 text-xs bg-slate-50 dark:bg-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600/60 rounded-xl text-slate-400 transition">
+          <div class="flex items-center gap-2">
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <span>Tìm kiếm nhanh...</span>
+          </div>
+          <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded text-slate-500 shadow-2xs">Ctrl K</kbd>
+        </button>
+
+        <!-- Sidebar Navigation Menu -->
+        <nav id="sidebar-menu" class="space-y-1"></nav>
+      </div>
+
+      <!-- Footer Quick Status -->
+      <div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-700/40 border border-slate-200/60 dark:border-slate-700/60 space-y-2 text-xs">
+        <div class="flex items-center justify-between text-slate-500 dark:text-slate-400 text-[11px]">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            100% Cục bộ & Bảo mật
+          </span>
+          <button onclick="window.storageService.exportBackupFile()" class="hover:text-indigo-600 dark:hover:text-indigo-400" title="Sao lưu ngay">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      
+      <!-- Top Mobile / Desktop Header -->
+      <header class="h-16 px-4 md:px-8 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between shrink-0 z-10">
+        <!-- Mobile Logo & Title -->
+        <div class="flex items-center gap-2 md:hidden">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+          </div>
+          <span class="font-bold text-sm text-slate-800 dark:text-white">Personal Hub</span>
+        </div>
+
+        <!-- Desktop Breadcrumb / Search trigger -->
+        <div class="hidden md:flex items-center gap-3 text-xs text-slate-400">
+          <span class="flex items-center gap-1">
+            <i data-lucide="lock" class="w-3.5 h-3.5 text-emerald-500"></i> Mã hóa AES-256 Client-side
+          </span>
+        </div>
+
+        <!-- Action Icons: Search, Theme Toggle, Backup -->
+        <div class="flex items-center gap-2">
+          <button 
+            onclick="window.app.openGlobalSearch()"
+            class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" 
+            title="Tìm kiếm (Ctrl+K)">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Theme switcher -->
+          <button 
+            onclick="const isDark = document.documentElement.classList.contains('dark'); window.SettingsModule.changeTheme(isDark ? 'light' : 'dark')"
+            class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition" 
+            title="Đổi Chế độ Tối / Sáng">
+            <i data-lucide="sun" class="w-4 h-4 hidden dark:block text-amber-400"></i>
+            <i data-lucide="moon" class="w-4 h-4 block dark:hidden text-indigo-600"></i>
+          </button>
+
+          <!-- Backup JSON shortcut -->
+          <button 
+            onclick="window.storageService.exportBackupFile()"
+            class="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/40 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Sao lưu</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Page Container -->
+      <main id="main-content" class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+        <!-- Module views will be dynamically injected here -->
+      </main>
+
+      <!-- Mobile Bottom Navigation Bar -->
+      <nav id="mobile-bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-2 z-30"></nav>
+    </div>
+
+  </div>
+
+  <!-- Global Command Search Modal (Ctrl + K) -->
+  <div id="global-search-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start justify-center pt-20 p-4 hidden" onclick="if(event.target===this) window.app.closeGlobalSearch()">
+    <div class="w-full max-w-xl bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden animate-slideUp">
+      <div class="p-4 border-b border-slate-100 dark:border-slate-700/80 flex items-center gap-3">
+        <i data-lucide="search" class="w-5 h-5 text-indigo-600"></i>
+        <input 
+          type="text" 
+          id="global-search-input"
+          placeholder="Tìm kiếm mọi thứ trong Personal Hub (Ghi chú, Két, Hồ sơ, Bookmark)..." 
+          oninput="window.app.handleGlobalSearchInput(this.value)"
+          class="w-full text-sm bg-transparent border-none focus:outline-none text-slate-800 dark:text-white placeholder:text-slate-400"
+        />
+        <kbd class="px-2 py-0.5 text-[10px] font-mono bg-slate-100 dark:bg-slate-700 rounded text-slate-400">ESC</kbd>
+      </div>
+
+      <div id="global-search-results" class="p-2 max-h-80 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-20 md:bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Application Scripts -->
+  <script src="js/crypto.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/modules/dashboard.js"></script>
+  <script src="js/modules/notes.js"></script>
+  <script src="js/modules/vault.js"></script>
+  <script src="js/modules/records.js"></script>
+  <script src="js/modules/bookmarks.js"></script>
+  <script src="js/modules/finance.js"></script>
+  <script src="js/modules/tasks.js"></script>
+  <script src="js/modules/settings.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
