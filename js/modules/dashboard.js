@@ -212,20 +212,20 @@ window.DashboardModule = {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 ${notes.slice(0, 4).map(note => `
                   <div onclick="window.app.navigate('notes', { noteId: '${note.id}' })" class="p-4 rounded-xl bg-slate-50 dark:bg-slate-700/50 hover:bg-indigo-50/50 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-600/50 transition cursor-pointer group">
-                    <div class="flex items-start justify-between">
-                      <h3 class="text-sm font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-1">
-                        ${note.pinned ? '<i data-lucide="pin" class="w-3.5 h-3.5 text-amber-500 inline mr-1"></i>' : ''}
+                    <div class="flex items-start justify-between gap-2">
+                      <h3 class="text-xs font-bold text-slate-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 line-clamp-1 flex items-center gap-1">
+                        ${note.pinned ? '<i data-lucide="pin" class="w-3 h-3 text-amber-500 shrink-0"></i>' : ''}
                         ${note.title || "Ghi chú không tiêu đề"}
                       </h3>
                       <span class="text-[10px] text-slate-400 shrink-0">${note.folder || "Chung"}</span>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-2">
-                      ${note.content.replace(/#|\*|`|>|\[|\]/g, '').slice(0, 100) || "Không có nội dung..."}
+                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-2 leading-relaxed">
+                      ${note.content ? note.content.replace(/#|\*|`|>|\[|\]/g, '').slice(0, 100) : "Không có nội dung..."}
                     </p>
                     <div class="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-                      <span>${new Date(note.updatedAt).toLocaleDateString('vi-VN')}</span>
-                      <span class="text-indigo-600 dark:text-indigo-400 group-hover:translate-x-0.5 transition flex items-center gap-0.5">
-                        Xem <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                      <span>${new Date(note.updatedAt || note.createdAt).toLocaleDateString('vi-VN')}</span>
+                      <span class="text-indigo-600 dark:text-indigo-400 font-bold group-hover:translate-x-0.5 transition flex items-center gap-0.5">
+                        Đọc chi tiết <i data-lucide="arrow-right" class="w-3 h-3"></i>
                       </span>
                     </div>
                   </div>
