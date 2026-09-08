@@ -1,6 +1,6 @@
 /**
  * Slide Presentation Controller (Màn Hình Chiếu Câu Hỏi Theo Đề Mục Slide)
- * Tối ưu hóa cho cả máy chiếu lẫn điện thoại quét QR (Zalo/Camera), chạm chọn đáp án tức thì.
+ * Tương thích 100% với Zalo WebView, Facebook Browser, Safari và Chrome Mobile.
  */
 
 class SlideController {
@@ -20,6 +20,7 @@ class SlideController {
     this.pin = null;
     this.liveVotes = [0, 0, 0, 0];
     this.votedCount = 0;
+    this.isZalo = /Zalo/i.test(navigator.userAgent);
   }
 
   init() {
@@ -65,7 +66,7 @@ class SlideController {
     this.timeRemaining = this.totalTime;
     this.pin = "sec_" + this.lessonId + "_" + this.sectionIndex;
 
-    // 3. Khởi tạo kết nối mạng bình chọn thời gian thực
+    // 3. Khởi tạo kết nối mạng bình chọn thời gian thực an toàn
     this._initLiveNetwork();
 
     // 4. Render giao diện
@@ -75,19 +76,21 @@ class SlideController {
 
   _initLiveNetwork() {
     try {
-      this.network = new PeerNetwork();
-      this.network.initHost(this.pin);
+      if (typeof PeerNetwork !== "undefined") {
+        this.network = new PeerNetwork();
+        this.network.initHost(this.pin);
 
-      this.network.on("player_vote", (data) => {
-        if (data.choiceIndex >= 0 && data.choiceIndex < 4) {
-          this.liveVotes[data.choiceIndex]++;
-          this.votedCount++;
-          this.updateLiveVotesDisplay();
-          window.soundEffects.playClick();
-        }
-      });
+        this.network.on("player_vote", (data) => {
+          if (data && data.choiceIndex >= 0 && data.choiceIndex < 4) {
+            this.liveVotes[data.choiceIndex]++;
+            this.votedCount++;
+            this.updateLiveVotesDisplay();
+            try { window.soundEffects.playClick(); } catch (e) {}
+          }
+        });
+      }
     } catch (e) {
-      console.warn("Lỗi khởi tạo P2P:", e);
+      console.warn("P2P Network unavailable in this webview:", e);
     }
   }
 
@@ -99,18 +102,20 @@ class SlideController {
 
       this.timeRemaining--;
 
-      if (this.timeRemaining > 5) {
-        window.soundEffects.playTick();
-      } else if (this.timeRemaining > 0) {
-        window.soundEffects.playTickFast();
-      }
+      try {
+        if (this.timeRemaining > 5) {
+          window.soundEffects.playTick();
+        } else if (this.timeRemaining > 0) {
+          window.soundEffects.playTickFast();
+        }
+      } catch (e) {}
 
       this.updateTimerDisplay();
 
       if (this.timeRemaining <= 0) {
         clearInterval(this.timerInterval);
         this.timeRemaining = 0;
-        window.soundEffects.playTimeUp();
+        try { window.soundEffects.playTimeUp(); } catch (e) {}
         this.updateTimerDisplay();
       }
     }, 1000);
@@ -156,7 +161,7 @@ class SlideController {
   updateLiveVotesDisplay() {
     const badge = document.getElementById("live-voters-badge");
     if (badge) {
-      badge.textContent = `${this.votedCount} lượt bình chọn trực tiếp`;
+      badge.textContent = `${this.votedCount} lượt bình chọn`;
     }
 
     for (let i = 0; i < 4; i++) {
@@ -171,7 +176,7 @@ class SlideController {
   }
 
   // =========================================================================
-  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP (DÀNH CHO NGƯỜI QUÉT QR ZALO / NGƯỜI THAM GIA)
+  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP (TƯƠNG THÍCH ZALO, CHROME, SAFARI)
   // =========================================================================
   selectOption(idx) {
     if (this.mySelectedOption !== null) return;
@@ -181,47 +186,54 @@ class SlideController {
     const correctIdx = this.section.correct;
     const isCorrect = idx === correctIdx;
 
-    // Rung nhẹ phản hồi nếu thiết bị hỗ trợ
-    if (navigator.vibrate) {
-      navigator.vibrate(isCorrect ? [40, 60, 40] : [100]);
-    }
+    // Rung phản hồi nếu hỗ trợ
+    try {
+      if (navigator && navigator.vibrate) {
+        navigator.vibrate(isCorrect ? [40, 60, 40] : [100]);
+      }
+    } catch (e) {}
 
     // Ghi nhận lượt bình chọn
     this.liveVotes[idx]++;
     this.votedCount++;
     this.updateLiveVotesDisplay();
 
-    if (isCorrect) {
-      window.soundEffects.playCorrect();
-      if (window.confetti) {
+    // Phát âm thanh
+    try {
+      if (isCorrect) {
+        window.soundEffects.playCorrect();
+      } else {
+        window.soundEffects.playWrong();
+      }
+    } catch (e) {}
+
+    // Pháo hoa nếu trả lời đúng
+    try {
+      if (isCorrect && window.confetti) {
         window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
       }
-    } else {
-      window.soundEffects.playWrong();
-    }
+    } catch (e) {}
 
-    // Làm nổi bật trực tiếp các thẻ phương án
+    // Cập nhật giao diện các thẻ nút bấm
     for (let i = 0; i < 4; i++) {
       const card = document.getElementById(`opt-card-${i}`);
       if (card) {
         if (i === correctIdx) {
-          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950/80");
+          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950", "border-emerald-400");
           card.classList.remove("opacity-40", "grayscale-[40%]");
-          // Gắn huy hiệu Đúng
           const tag = card.querySelector(".choice-tag");
           if (tag) tag.innerHTML = `✓ Đúng`;
         } else if (i === idx) {
-          // Người dùng chọn sai
-          card.classList.add("ring-4", "ring-rose-500", "bg-rose-950/80");
+          card.classList.add("ring-4", "ring-rose-500", "bg-rose-950", "border-rose-400");
           const tag = card.querySelector(".choice-tag");
           if (tag) tag.innerHTML = `✕ Bạn chọn`;
         } else {
-          card.classList.add("opacity-30", "grayscale-[50%]");
+          card.classList.add("opacity-40", "grayscale-[50%]");
         }
       }
     }
 
-    // Hiển thị khung giải thích & Key Takeaways
+    // Hiển thị khung giải thích & Key Takeaway
     const explainBox = document.getElementById("explanation-box");
     if (explainBox) {
       explainBox.classList.remove("hidden");
@@ -243,7 +255,9 @@ class SlideController {
           `;
         }
       }
-      explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setTimeout(() => {
+        try { explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+      }, 100);
     }
 
     const revealBtn = document.getElementById("reveal-btn");
@@ -251,7 +265,9 @@ class SlideController {
       revealBtn.classList.add("hidden");
     }
 
-    if (window.lucide) lucide.createIcons();
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
   }
 
   // ==========================================
@@ -263,22 +279,24 @@ class SlideController {
     if (this.timerInterval) clearInterval(this.timerInterval);
 
     const correctIdx = this.section.correct;
-    window.soundEffects.playCorrect();
+    try { window.soundEffects.playCorrect(); } catch (e) {}
 
-    if (window.confetti) {
-      window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.8 } });
-    }
+    try {
+      if (window.confetti) {
+        window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.8 } });
+      }
+    } catch (e) {}
 
     for (let i = 0; i < 4; i++) {
       const card = document.getElementById(`opt-card-${i}`);
       if (card) {
         if (i === correctIdx) {
-          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950/80");
+          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950", "border-emerald-400");
           card.classList.remove("opacity-40", "grayscale-[40%]");
           const tag = card.querySelector(".choice-tag");
           if (tag) tag.innerHTML = `✓ Đáp án đúng`;
         } else {
-          card.classList.add("opacity-30", "grayscale-[50%]");
+          card.classList.add("opacity-40", "grayscale-[50%]");
         }
       }
     }
@@ -295,7 +313,9 @@ class SlideController {
           </span>
         `;
       }
-      explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setTimeout(() => {
+        try { explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
+      }, 100);
     }
 
     const revealBtn = document.getElementById("reveal-btn");
@@ -303,7 +323,9 @@ class SlideController {
       revealBtn.classList.add("hidden");
     }
 
-    if (window.lucide) lucide.createIcons();
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
   }
 
   // ==========================================
@@ -330,8 +352,17 @@ class SlideController {
     ];
 
     container.innerHTML = `
-      <div class="min-h-screen flex flex-col justify-between p-3 sm:p-6 md:p-8 bg-game-dark bg-game-glow text-white select-none">
+      <div class="min-h-screen flex flex-col justify-between p-3 sm:p-6 md:p-8 bg-game-dark bg-game-glow text-white">
         
+        <!-- Zalo In-App Browser Compatibility Banner -->
+        ${this.isZalo ? `
+          <div class="max-w-6xl mx-auto w-full mb-2 p-2.5 bg-indigo-900/90 border border-indigo-400/50 rounded-2xl flex items-center justify-between text-xs text-indigo-100">
+            <span class="flex items-center gap-1.5 font-bold">
+              <span>📱</span> Bạn đang mở trong Zalo. Hãy chạm vào 1 trong 4 ô màu bên dưới để chọn đáp án!
+            </span>
+          </div>
+        ` : ''}
+
         <!-- Top Bar: Navigation & Slide Context -->
         <header class="max-w-6xl mx-auto w-full flex items-center justify-between gap-4 border-b border-slate-800 pb-3">
           <div class="flex items-center gap-3">
@@ -346,10 +377,10 @@ class SlideController {
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
-            <button onclick="slideApp.toggleFullscreen()" class="p-2 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Toàn màn hình">
+            <button type="button" onclick="slideApp.toggleFullscreen()" class="p-2 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Toàn màn hình">
               <i data-lucide="maximize" class="w-4 h-4"></i>
             </button>
-            <button onclick="slideApp.toggleQrModal()" class="px-3 py-1.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
+            <button type="button" onclick="slideApp.toggleQrModal()" class="px-3 py-1.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
               <i data-lucide="qr-code" class="w-3.5 h-3.5 text-pink-400"></i>
               <span class="hidden sm:inline">Mã QR</span>
             </button>
@@ -371,10 +402,10 @@ class SlideController {
                   <i data-lucide="timer" class="w-4 h-4"></i>
                   <span id="slide-timer-num">${this.timeRemaining}</span>s
                 </span>
-                <button onclick="slideApp.togglePauseTimer()" class="hover:text-white p-1" title="Tạm dừng / Đếm tiếp">
+                <button type="button" onclick="slideApp.togglePauseTimer()" class="hover:text-white p-1" title="Tạm dừng / Đếm tiếp">
                   <i id="pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
                 </button>
-                <button onclick="slideApp.resetTimer()" class="hover:text-white p-1" title="Đếm lại từ đầu">
+                <button type="button" onclick="slideApp.resetTimer()" class="hover:text-white p-1" title="Đếm lại từ đầu">
                   <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
                 </button>
               </div>
@@ -394,25 +425,25 @@ class SlideController {
             </span>
             <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white leading-snug tracking-tight">${currentSec.question}</h2>
             <p class="text-[11px] sm:text-xs text-indigo-300 font-semibold flex items-center justify-center gap-1.5 pt-1">
-              <i data-lucide="touchpad" class="w-3.5 h-3.5"></i>
-              <span>Chạm hoặc click vào 1 phương án (A, B, C, D) bên dưới để chọn câu trả lời của bạn</span>
+              <span>👉 Chạm vào 1 phương án (A, B, C, D) để chọn câu trả lời</span>
             </p>
           </div>
 
-          <!-- 4 Option Cards (CLICKABLE & INTERACTIVE) -->
+          <!-- 4 Native BUTTON Option Cards (100% Mobile & Zalo Touch Sensitive) -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             ${currentSec.choices.map((choice, idx) => {
               const opt = optionColors[idx];
               return `
-                <div 
+                <button 
+                  type="button"
                   id="opt-card-${idx}" 
                   onclick="slideApp.selectOption(${idx})" 
-                  class="glass-card relative overflow-hidden p-4 sm:p-5 md:p-6 rounded-3xl border border-slate-700/60 transition duration-200 cursor-pointer hover:border-indigo-400 hover:scale-[1.01] active:scale-95 group shadow-lg">
+                  class="choice-btn glass-card text-left w-full relative overflow-hidden p-4 sm:p-5 md:p-6 rounded-3xl border border-slate-700/60 transition duration-150 cursor-pointer hover:border-indigo-400 active:scale-95 group shadow-lg focus:outline-none">
                   
                   <!-- Live Vote Progress Bar Fill -->
-                  <div id="slide-bar-${idx}" class="absolute inset-0 ${opt.barClass} opacity-30 transition-all duration-300 ease-out" style="width: 0%;"></div>
+                  <div id="slide-bar-${idx}" class="absolute inset-0 ${opt.barClass} opacity-30 transition-all duration-300 ease-out pointer-events-none" style="width: 0%;"></div>
 
-                  <div class="relative z-10 flex items-center justify-between gap-3">
+                  <div class="relative z-10 flex items-center justify-between gap-3 pointer-events-none">
                     <div class="flex items-center gap-3 sm:gap-4">
                       <span class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${opt.bg} text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg shrink-0 group-hover:scale-105 transition">
                         ${opt.label}
@@ -429,14 +460,15 @@ class SlideController {
                       </span>
                     </div>
                   </div>
-                </div>
+                </button>
               `;
             }).join("")}
           </div>
 
-          <!-- Reveal Button (Cho giảng viên xem đáp án không cần vote) -->
+          <!-- Reveal Button -->
           <div class="text-center pt-1">
             <button 
+              type="button"
               id="reveal-btn" 
               onclick="slideApp.revealAnswer()" 
               class="px-6 py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto transition transform hover:scale-105 active:scale-95">
@@ -478,7 +510,7 @@ class SlideController {
                 <span>Đề mục ${this.sectionIndex - 1}</span>
               </a>
             ` : `
-              <span class="px-3 py-1.5 glass-panel rounded-xl text-slate-600 font-bold opacity-50 cursor-not-allowed">Đề mục 1</span>
+              <span class="px-3.5 py-1.5 glass-panel rounded-xl text-slate-600 font-bold opacity-50 cursor-not-allowed">Đề mục 1</span>
             `}
 
             <span class="px-2.5 py-1 font-bold text-slate-400 text-[11px]">Đề mục ${this.sectionIndex} / ${totalSecs}</span>
@@ -489,13 +521,13 @@ class SlideController {
                 <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
               </a>
             ` : `
-              <span class="px-3 py-1.5 glass-panel rounded-xl text-emerald-400 font-bold">🎉 Hoàn thành</span>
+              <span class="px-3.5 py-1.5 glass-panel rounded-xl text-emerald-400 font-bold">🎉 Hoàn thành</span>
             `}
           </div>
 
           <div class="flex items-center gap-3 text-slate-400 text-[11px]">
             <span class="hidden md:inline">Nhấn <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">Alt + Tab</kbd> để quay lại PowerPoint</span>
-            <button onclick="window.close()" class="px-3 py-1 glass-panel hover:bg-rose-500/20 text-rose-300 rounded-xl font-semibold transition">
+            <button type="button" onclick="window.close()" class="px-3 py-1 glass-panel hover:bg-rose-500/20 text-rose-300 rounded-xl font-semibold transition">
               Đóng tab
             </button>
           </div>
@@ -506,7 +538,7 @@ class SlideController {
           <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-xs sm:max-w-sm w-full text-center space-y-4 border-indigo-500/40 animate-pop-in">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2">
               <h3 class="text-sm sm:text-base font-black text-white">Quét QR Để Bình Chọn</h3>
-              <button onclick="slideApp.toggleQrModal()" class="text-slate-400 hover:text-white p-1">
+              <button type="button" onclick="slideApp.toggleQrModal()" class="text-slate-400 hover:text-white p-1">
                 <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
@@ -517,7 +549,7 @@ class SlideController {
 
             <p class="text-[11px] text-slate-300">Quét mã bằng camera điện thoại hoặc Zalo để chọn đáp án A, B, C, D trực tiếp.</p>
 
-            <button onclick="slideApp.toggleQrModal()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white shadow-lg">
+            <button type="button" onclick="slideApp.toggleQrModal()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white shadow-lg">
               Đóng
             </button>
           </div>
@@ -526,7 +558,9 @@ class SlideController {
       </div>
     `;
 
-    if (window.lucide) lucide.createIcons();
+    if (window.lucide) {
+      try { lucide.createIcons(); } catch (e) {}
+    }
 
     setTimeout(() => {
       const qrEl = document.getElementById("section-qrcode-box");
@@ -557,15 +591,15 @@ class SlideController {
   }
 
   toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        console.warn("Fullscreen not supported:", err);
-      });
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
+    try {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
       }
-    }
+    } catch (e) {}
   }
 }
 
