@@ -12,26 +12,41 @@ Write-Host ""
 & $git config --global --add safe.directory "c:/Dropbox/0.AI AGENT/9.Web" 2>$null
 & $git config --global user.name "Thang605" 2>$null
 & $git config --global user.email "thang605@users.noreply.github.com" 2>$null
-& $git config --global credential.helper manager 2>$null
 
-# Lấy remote hiện tại nếu có
-$currentRemote = (& $git remote get-url origin 2>$null)
-if ([string]::IsNullOrWhiteSpace($currentRemote)) {
-    $currentRemote = "https://github.com/Thang605/personal-hub.git"
-}
-
-Write-Host "Remote URL: $currentRemote" -ForegroundColor Yellow
-Write-Host "Đang chuẩn bị gói dữ liệu và đẩy lên GitHub..." -ForegroundColor White
+$repoName = "Thang605/personal-hub"
+$baseUrl = "https://github.com/$repoName.git"
 
 & $git remote remove origin 2>$null
-& $git remote add origin $currentRemote.Trim()
+& $git remote add origin $baseUrl
 & $git add .
 & $git commit -m "Fix: QR code link and realtime voting sync for PowerPoint Web Viewer" 2>$null
 & $git branch -M main
 
-Write-Host ""
-Write-Host "Đang đẩy toàn bộ mã nguồn lên GitHub (Nếu xuất hiện cửa sổ đăng nhập GitHub, vui lòng chọn Authorize)..." -ForegroundColor Green
-& $git push -u origin main
+Write-Host "Đang đẩy toàn bộ mã nguồn lên GitHub..." -ForegroundColor Green
+$pushOutput = (& $git push -u origin main 2>&1)
+$pushSuccess = ($LASTEXITCODE -eq 0)
+
+if (-not $pushSuccess) {
+    Write-Host ""
+    Write-Host "⚠️ GitHub yêu cầu xác thực quyền đẩy mã nguồn (Personal Access Token)." -ForegroundColor Yellow
+    Write-Host "Nếu chưa có Token, hãy dán Token của bạn vào bên dưới (hoặc nhấn ENTER để mở trang tạo Token tự động):" -ForegroundColor White
+    $token = Read-Host "Dán GitHub Token (ghp_...) hoặc nhấn ENTER để mở trình duyệt"
+    
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        Start-Process "https://github.com/settings/tokens/new?scopes=repo&description=PersonalHub"
+        Write-Host "Trình duyệt đã mở trang tạo Token. Sau khi bấm 'Generate token', hãy copy mã và dán vào đây:" -ForegroundColor Yellow
+        $token = Read-Host "Dán GitHub Token vào đây"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($token)) {
+        $tokenClean = $token.Trim()
+        $authUrl = "https://${tokenClean}@github.com/$repoName.git"
+        & $git remote set-url origin $authUrl
+        Write-Host "Đang đẩy lại với Token..." -ForegroundColor Green
+        & $git push -u origin main
+        & $git remote set-url origin $baseUrl
+    }
+}
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan

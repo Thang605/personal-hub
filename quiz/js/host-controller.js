@@ -76,50 +76,81 @@ class HostController {
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 class="text-2xl md:text-3xl font-extrabold text-white">Chọn Bộ Câu Hỏi Cho Buổi Chơi</h2>
-              <p class="text-sm text-slate-400">Chọn một bộ câu hỏi có sẵn hoặc tạo bộ câu hỏi mới cho phòng của bạn</p>
+              <p class="text-sm text-slate-400">Chọn một bộ câu hỏi để bắt đầu, tùy chỉnh nội dung hoặc tạo mới</p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <button onclick="hostApp.openCreateQuizModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition">
                 <i data-lucide="plus-circle" class="w-4 h-4"></i>
-                <span>Tạo Bộ Câu Hỏi Mới</span>
+                <span>Tạo Bộ Mới</span>
               </button>
-              <label class="px-4 py-2.5 glass-panel hover:bg-slate-700/80 rounded-xl text-sm font-semibold flex items-center gap-2 cursor-pointer transition">
+              <label class="px-3.5 py-2.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs md:text-sm font-semibold flex items-center gap-2 cursor-pointer transition">
                 <i data-lucide="upload" class="w-4 h-4"></i>
-                <span>Nhập File JSON</span>
+                <span>Nhập JSON</span>
                 <input type="file" accept=".json" onchange="hostApp.handleImportJson(event)" class="hidden" />
               </label>
+              <button onclick="hostApp.resetDefaultQuizzes()" class="px-3.5 py-2.5 glass-panel hover:bg-rose-500/20 hover:border-rose-500/40 rounded-xl text-xs md:text-sm font-semibold text-slate-300 hover:text-rose-300 flex items-center gap-1.5 transition" title="Khôi phục các bộ câu hỏi gốc ban đầu">
+                <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                <span>Khôi Phục Mặc Định</span>
+              </button>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
-            ${quizzes.map((q) => `
-              <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between hover:border-indigo-500/50 hover:scale-[1.01] transition duration-200 group">
-                <div class="space-y-3">
-                  <div class="flex items-start justify-between">
-                    <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                      ${q.category || "Tổng hợp"}
-                    </span>
-                    <span class="text-xs font-semibold text-slate-400 flex items-center gap-1">
-                      <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
-                      ${q.questions.length} câu hỏi
-                    </span>
-                  </div>
-                  <h3 class="text-lg font-bold text-white group-hover:text-indigo-300 transition">${q.title}</h3>
-                  <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">${q.description || "Bộ câu hỏi thú vị với nhiều thử thách hấp dẫn."}</p>
-                </div>
-
-                <div class="pt-6 flex items-center gap-2">
-                  <button onclick="hostApp.startLobby('${q.id}')" class="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 transition">
-                    <i data-lucide="play" class="w-4 h-4 fill-white"></i>
-                    <span>Tạo Phòng & Chơi Ngay</span>
-                  </button>
-                  <button onclick="window.quizDataManager.exportToJson('${q.id}')" class="p-3 glass-panel hover:bg-slate-700/80 rounded-2xl text-slate-400 hover:text-white transition" title="Xuất JSON">
-                    <i data-lucide="download" class="w-4 h-4"></i>
-                  </button>
-                </div>
+          ${quizzes.length === 0 ? `
+            <div class="glass-panel p-12 rounded-3xl text-center space-y-4 max-w-lg mx-auto my-8">
+              <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                <i data-lucide="inbox" class="w-8 h-8"></i>
               </div>
-            `).join("")}
-          </div>
+              <h3 class="text-lg font-bold text-white">Chưa có bộ câu hỏi nào</h3>
+              <p class="text-xs text-slate-400">Bạn có thể tạo bộ câu hỏi mới hoặc bấm nút bên dưới để khôi phục các bộ câu hỏi mẫu.</p>
+              <div class="flex justify-center gap-3 pt-2">
+                <button onclick="hostApp.openCreateQuizModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold transition">Tạo Bộ Mới</button>
+                <button onclick="hostApp.resetDefaultQuizzes()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold transition">Khôi Phục Mặc Định</button>
+              </div>
+            </div>
+          ` : `
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+              ${quizzes.map((q) => `
+                <div class="glass-panel p-6 rounded-3xl flex flex-col justify-between hover:border-indigo-500/50 hover:scale-[1.01] transition duration-200 group relative">
+                  <div class="space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                      <span class="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        ${this.escapeHtml(q.category || "Tổng hợp")}
+                      </span>
+                      <div class="flex items-center gap-1.5">
+                        <button onclick="event.stopPropagation(); hostApp.openEditQuizModal('${q.id}')" class="p-1.5 rounded-lg glass-panel hover:bg-indigo-600/30 hover:border-indigo-500/40 text-slate-400 hover:text-indigo-300 transition" title="Chỉnh sửa bộ câu hỏi này">
+                          <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); hostApp.deleteQuiz('${q.id}')" class="p-1.5 rounded-lg glass-panel hover:bg-rose-500/30 hover:border-rose-500/40 text-slate-400 hover:text-rose-300 transition" title="Xóa bộ câu hỏi này">
+                          <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <h3 class="text-lg font-bold text-white group-hover:text-indigo-300 transition leading-snug">${this.escapeHtml(q.title)}</h3>
+                      <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed mt-1.5">${this.escapeHtml(q.description || "Bộ câu hỏi thú vị với nhiều thử thách hấp dẫn.")}</p>
+                    </div>
+                    <div class="text-xs font-semibold text-slate-400 flex items-center gap-1 pt-1">
+                      <i data-lucide="help-circle" class="w-3.5 h-3.5 text-indigo-400"></i>
+                      <span>${q.questions ? q.questions.length : 0} câu hỏi</span>
+                    </div>
+                  </div>
+
+                  <div class="pt-6 flex items-center gap-2">
+                    <button onclick="hostApp.startLobby('${q.id}')" class="flex-1 py-3 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 transition">
+                      <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                      <span>Tạo Phòng & Chơi</span>
+                    </button>
+                    <button onclick="hostApp.openEditQuizModal('${q.id}')" class="p-3 glass-panel hover:bg-indigo-600/30 rounded-2xl text-slate-300 hover:text-white transition" title="Chỉnh sửa nội dung">
+                      <i data-lucide="pencil" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="window.quizDataManager.exportToJson('${q.id}')" class="p-3 glass-panel hover:bg-slate-700/80 rounded-2xl text-slate-400 hover:text-white transition" title="Xuất JSON">
+                      <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          `}
         </main>
 
         <!-- Footer -->
@@ -940,9 +971,76 @@ class HostController {
   }
 
   // ==========================================
-  // 7. QUẢN LÝ TẠO CÂU HỎI MỚI
+  // 7. QUẢN LÝ TẠO, CHỈNH SỬA & XÓA BỘ CÂU HỎI
   // ==========================================
+  escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  deleteQuiz(quizId) {
+    const quiz = window.quizDataManager.getById(quizId);
+    if (!quiz) return;
+    const confirmed = confirm(
+      `Bạn có chắc chắn muốn xóa bộ câu hỏi:\n"${quiz.title}"?\n\nLưu ý: Bộ câu hỏi bị xóa sẽ biến mất khỏi danh sách. Bạn có thể nhấn 'Khôi Phục Mặc Định' nếu muốn tải lại các bộ câu hỏi gốc.`
+    );
+    if (confirmed) {
+      window.quizDataManager.deleteQuiz(quizId);
+      this.renderQuizSelector();
+    }
+  }
+
+  resetDefaultQuizzes() {
+    const confirmed = confirm(
+      "Bạn có chắc muốn khôi phục danh sách câu hỏi về mặc định ban đầu của hệ thống?\n\nToàn bộ các thay đổi trên các bộ câu hỏi mặc định hoặc các câu hỏi tự tạo có thể bị thay thế."
+    );
+    if (confirmed) {
+      window.quizDataManager.resetToDefault();
+      this.renderQuizSelector();
+    }
+  }
+
   openCreateQuizModal() {
+    this.openQuizModal(null);
+  }
+
+  openEditQuizModal(quizId) {
+    this.openQuizModal(quizId);
+  }
+
+  closeQuizModal() {
+    const modal = document.getElementById("quiz-modal-container");
+    if (modal) modal.innerHTML = "";
+  }
+
+  openQuizModal(quizId = null) {
+    let quiz = null;
+    if (quizId) {
+      quiz = window.quizDataManager.getById(quizId);
+    }
+
+    const isEdit = !!quiz;
+    const modalTitle = isEdit ? "Chỉnh Sửa Bộ Câu Hỏi" : "Tạo Bộ Câu Hỏi Mới";
+    const titleVal = quiz ? quiz.title : "";
+    const categoryVal = quiz ? (quiz.category || "Công nghệ & AI") : "";
+    const descVal = quiz ? (quiz.description || "") : "";
+    const questions = (quiz && quiz.questions && quiz.questions.length > 0)
+      ? quiz.questions
+      : [
+          {
+            question: "",
+            choices: ["", "", "", ""],
+            correct: 0,
+            time: 15,
+            explanation: ""
+          }
+        ];
+
     let modal = document.getElementById("quiz-modal-container");
     if (!modal) {
       modal = document.createElement("div");
@@ -951,76 +1049,80 @@ class HostController {
     }
 
     modal.innerHTML = `
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div class="glass-panel-light dark:glass-panel bg-slate-900 border border-slate-700 w-full max-w-2xl max-h-[90vh] rounded-3xl p-6 overflow-y-auto space-y-6 text-white">
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-3 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
+        <div class="glass-panel-light dark:glass-panel bg-slate-900 border border-slate-700/80 w-full max-w-3xl my-auto rounded-3xl p-5 md:p-8 space-y-6 text-white shadow-2xl">
+          <!-- Modal Header -->
           <div class="flex items-center justify-between border-b border-slate-800 pb-4">
-            <h3 class="text-xl font-black">Tạo Bộ Câu Hỏi Mới</h3>
-            <button onclick="document.getElementById('quiz-modal-container').innerHTML = ''" class="p-2 text-slate-400 hover:text-white">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+                <i data-lucide="${isEdit ? 'edit-3' : 'plus-circle'}" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-lg md:text-xl font-black">${modalTitle}</h3>
+                <p class="text-xs text-slate-400">${isEdit ? 'Chỉnh sửa thông tin và danh sách câu hỏi cho bộ đề này' : 'Tạo bộ câu hỏi tùy chỉnh riêng cho lớp học hoặc phòng chơi của bạn'}</p>
+              </div>
+            </div>
+            <button type="button" onclick="hostApp.closeQuizModal()" class="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition">
               <i data-lucide="x" class="w-5 h-5"></i>
             </button>
           </div>
 
-          <form id="new-quiz-form" onsubmit="hostApp.saveNewQuiz(event)" class="space-y-4">
-            <div>
-              <label class="block text-xs font-bold text-slate-300 mb-1">Tên bộ câu hỏi</label>
-              <input type="text" id="quiz-title" required placeholder="Ví dụ: Đố Vui Cuối Tuần 2026" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500" />
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold text-slate-300 mb-1">Mô tả ngắn</label>
-              <input type="text" id="quiz-desc" placeholder="Ví dụ: Câu hỏi thử thách phản xạ và kiến thức..." class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500" />
-            </div>
-
-            <div id="questions-list-builder" class="space-y-4 pt-2">
-              <!-- Câu hỏi 1 mặc định -->
-              <div class="p-4 bg-slate-800/60 rounded-2xl border border-slate-700/60 space-y-3 question-item">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-black text-indigo-400">CÂU HỎI 1</span>
-                  <div class="flex items-center gap-2">
-                    <label class="text-[11px] text-slate-400">Thời gian:</label>
-                    <select class="q-time bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-white">
-                      <option value="10">10s</option>
-                      <option value="15" selected>15s</option>
-                      <option value="20">20s</option>
-                      <option value="30">30s</option>
-                    </select>
-                  </div>
-                </div>
-                <input type="text" placeholder="Nội dung câu hỏi..." required class="q-text w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
-                
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                  <input type="text" placeholder="Đáp án A (Đỏ)..." required class="q-opt-0 px-3 py-1.5 bg-red-950/40 border border-red-500/40 rounded-lg text-white" />
-                  <input type="text" placeholder="Đáp án B (Xanh)..." required class="q-opt-1 px-3 py-1.5 bg-blue-950/40 border border-blue-500/40 rounded-lg text-white" />
-                  <input type="text" placeholder="Đáp án C (Vàng)..." required class="q-opt-2 px-3 py-1.5 bg-amber-950/40 border border-amber-500/40 rounded-lg text-white" />
-                  <input type="text" placeholder="Đáp án D (Xanh lá)..." required class="q-opt-3 px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-white" />
-                </div>
-
-                <div class="flex items-center justify-between text-xs pt-1">
-                  <div class="flex items-center gap-2">
-                    <span class="text-slate-400">Đáp án đúng:</span>
-                    <select class="q-correct bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-emerald-400 font-bold">
-                      <option value="0">Đáp án A</option>
-                      <option value="1">Đáp án B</option>
-                      <option value="2">Đáp án C</option>
-                      <option value="3">Đáp án D</option>
-                    </select>
-                  </div>
-                </div>
+          <!-- Form Content -->
+          <form id="quiz-builder-form" onsubmit="event.preventDefault(); hostApp.saveQuizFromModal(event, '${quizId || ''}', false)" class="space-y-5">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="md:col-span-2 space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">Tên bộ câu hỏi <span class="text-rose-400">*</span></label>
+                <input type="text" id="quiz-title" required value="${this.escapeHtml(titleVal)}" placeholder="Ví dụ: Đố Vui Công Nghệ 2026" class="w-full px-4 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition" />
+              </div>
+              <div class="space-y-1.5">
+                <label class="block text-xs font-bold text-slate-300">Chủ đề / Thể loại</label>
+                <input type="text" id="quiz-category" value="${this.escapeHtml(categoryVal)}" placeholder="Ví dụ: AI, Văn hóa, Game..." class="w-full px-4 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition" />
               </div>
             </div>
 
-            <button type="button" onclick="hostApp.addQuestionField()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-dashed border-slate-600 rounded-xl text-xs font-bold text-slate-300 flex items-center justify-center gap-1.5">
-              <i data-lucide="plus" class="w-4 h-4"></i>
-              <span>Thêm Câu Hỏi Tiếp Theo</span>
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-300">Mô tả tóm tắt</label>
+              <input type="text" id="quiz-desc" value="${this.escapeHtml(descVal)}" placeholder="Mô tả nội dung hoặc hướng dẫn cho người chơi..." class="w-full px-4 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition" />
+            </div>
+
+            <!-- Questions Builder List -->
+            <div class="space-y-3 pt-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-sm font-extrabold text-indigo-300 uppercase tracking-wider flex items-center gap-2">
+                  <i data-lucide="list-ordered" class="w-4 h-4"></i>
+                  <span>Danh Sách Câu Hỏi (<span id="modal-questions-count">${questions.length}</span>)</span>
+                </h4>
+                <button type="button" onclick="hostApp.addQuestionField()" class="px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 rounded-xl text-xs font-bold text-indigo-200 flex items-center gap-1.5 transition">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                  <span>Thêm Câu Hỏi</span>
+                </button>
+              </div>
+
+              <div id="questions-list-builder" class="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                ${questions.map((q, idx) => this.renderQuestionItemHtml(q, idx + 1)).join("")}
+              </div>
+            </div>
+
+            <button type="button" onclick="hostApp.addQuestionField()" class="w-full py-3 bg-slate-800/70 hover:bg-slate-800 border border-dashed border-slate-600/80 hover:border-indigo-500 rounded-2xl text-xs font-bold text-slate-300 hover:text-indigo-300 flex items-center justify-center gap-2 transition">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Thêm Câu Hỏi Mới</span>
             </button>
 
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
-              <button type="button" onclick="document.getElementById('quiz-modal-container').innerHTML = ''" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">
-                Hủy
+            <!-- Actions -->
+            <div class="flex flex-col-reverse sm:flex-row items-center justify-between gap-3 pt-4 border-t border-slate-800">
+              <button type="button" onclick="hostApp.closeQuizModal()" class="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                Hủy Bỏ
               </button>
-              <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-600/30">
-                Lưu & Chơi Ngay
-              </button>
+              <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button type="button" onclick="hostApp.saveQuizFromModal(event, '${quizId || ''}', false)" class="flex-1 sm:flex-none px-5 py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="save" class="w-4 h-4"></i>
+                  <span>Lưu Bộ Câu Hỏi</span>
+                </button>
+                <button type="button" onclick="hostApp.saveQuizFromModal(event, '${quizId || ''}', true)" class="flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-1.5">
+                  <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+                  <span>Lưu & Tạo Phòng Ngay</span>
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -1030,63 +1132,149 @@ class HostController {
     if (window.lucide) lucide.createIcons();
   }
 
+  renderQuestionItemHtml(q = null, index = 1) {
+    const qText = q ? (q.question || "") : "";
+    const choices = q && q.choices ? q.choices : ["", "", "", ""];
+    const correct = q && typeof q.correct === "number" ? q.correct : 0;
+    const time = q && q.time ? q.time : 15;
+    const explanation = q ? (q.explanation || "") : "";
+
+    return `
+      <div class="p-4 bg-slate-800/70 rounded-2xl border border-slate-700/70 space-y-3 question-item transition hover:border-slate-600">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-xs font-black text-indigo-300 question-number-label">
+              CÂU HỎI ${index}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-[11px] text-slate-400 font-medium">Thời gian:</label>
+            <select class="q-time bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-white focus:outline-hidden focus:border-indigo-500">
+              <option value="5" ${time === 5 ? "selected" : ""}>5 giây</option>
+              <option value="10" ${time === 10 ? "selected" : ""}>10 giây</option>
+              <option value="15" ${time === 15 ? "selected" : ""}>15 giây</option>
+              <option value="20" ${time === 20 ? "selected" : ""}>20 giây</option>
+              <option value="30" ${time === 30 ? "selected" : ""}>30 giây</option>
+              <option value="45" ${time === 45 ? "selected" : ""}>45 giây</option>
+              <option value="60" ${time === 60 ? "selected" : ""}>60 giây</option>
+              <option value="90" ${time === 90 ? "selected" : ""}>90 giây</option>
+            </select>
+            <button type="button" onclick="hostApp.removeQuestionField(this)" class="text-slate-400 hover:text-rose-400 p-1.5 rounded-lg hover:bg-slate-700/60 transition" title="Xóa câu hỏi này">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <textarea placeholder="Nhập nội dung câu hỏi..." required rows="2" class="q-text w-full px-3 py-2 bg-slate-900/90 border border-slate-700 rounded-xl text-xs md:text-sm text-white focus:outline-hidden focus:border-indigo-500 transition leading-relaxed">${this.escapeHtml(qText)}</textarea>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div class="flex items-center gap-1.5 p-1.5 bg-red-950/30 border border-red-500/30 rounded-xl">
+            <span class="w-6 h-6 rounded-lg bg-red-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">A</span>
+            <input type="text" placeholder="Đáp án A (Đỏ)..." required value="${this.escapeHtml(choices[0] || '')}" class="q-opt-0 w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-hidden" />
+          </div>
+
+          <div class="flex items-center gap-1.5 p-1.5 bg-blue-950/30 border border-blue-500/30 rounded-xl">
+            <span class="w-6 h-6 rounded-lg bg-blue-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">B</span>
+            <input type="text" placeholder="Đáp án B (Xanh dương)..." required value="${this.escapeHtml(choices[1] || '')}" class="q-opt-1 w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-hidden" />
+          </div>
+
+          <div class="flex items-center gap-1.5 p-1.5 bg-amber-950/30 border border-amber-500/30 rounded-xl">
+            <span class="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 font-black flex items-center justify-center text-[11px] shrink-0">C</span>
+            <input type="text" placeholder="Đáp án C (Vàng)..." value="${this.escapeHtml(choices[2] || '')}" class="q-opt-2 w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-hidden" />
+          </div>
+
+          <div class="flex items-center gap-1.5 p-1.5 bg-emerald-950/30 border border-emerald-500/30 rounded-xl">
+            <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white font-black flex items-center justify-center text-[11px] shrink-0">D</span>
+            <input type="text" placeholder="Đáp án D (Xanh lá)..." value="${this.escapeHtml(choices[3] || '')}" class="q-opt-3 w-full bg-transparent px-2 py-1 text-xs text-white focus:outline-hidden" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-700/50">
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-semibold whitespace-nowrap">Đáp án đúng:</span>
+            <select class="q-correct w-full bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-emerald-400 font-bold focus:outline-hidden focus:border-emerald-500">
+              <option value="0" ${correct === 0 ? "selected" : ""}>Đáp án Đúng: A (Đỏ)</option>
+              <option value="1" ${correct === 1 ? "selected" : ""}>Đáp án Đúng: B (Xanh dương)</option>
+              <option value="2" ${correct === 2 ? "selected" : ""}>Đáp án Đúng: C (Vàng)</option>
+              <option value="3" ${correct === 3 ? "selected" : ""}>Đáp án Đúng: D (Xanh lá)</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-slate-400 font-semibold whitespace-nowrap">Giải thích:</span>
+            <input type="text" placeholder="Ghi chú giải thích chi tiết (tùy chọn)..." value="${this.escapeHtml(explanation)}" class="q-explanation w-full px-2.5 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-hidden focus:border-indigo-500" />
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   addQuestionField() {
     const list = document.getElementById("questions-list-builder");
     if (!list) return;
 
-    const count = list.querySelectorAll(".question-item").length + 1;
-    const div = document.createElement("div");
-    div.className = "p-4 bg-slate-800/60 rounded-2xl border border-slate-700/60 space-y-3 question-item";
-    div.innerHTML = `
-      <div class="flex items-center justify-between">
-        <span class="text-xs font-black text-indigo-400">CÂU HỎI ${count}</span>
-        <div class="flex items-center gap-2">
-          <label class="text-[11px] text-slate-400">Thời gian:</label>
-          <select class="q-time bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-white">
-            <option value="10">10s</option>
-            <option value="15" selected>15s</option>
-            <option value="20">20s</option>
-            <option value="30">30s</option>
-          </select>
-          <button type="button" onclick="this.closest('.question-item').remove()" class="text-slate-400 hover:text-rose-400 p-1">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
-      <input type="text" placeholder="Nội dung câu hỏi..." required class="q-text w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white" />
-      
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <input type="text" placeholder="Đáp án A (Đỏ)..." required class="q-opt-0 px-3 py-1.5 bg-red-950/40 border border-red-500/40 rounded-lg text-white" />
-        <input type="text" placeholder="Đáp án B (Xanh)..." required class="q-opt-1 px-3 py-1.5 bg-blue-950/40 border border-blue-500/40 rounded-lg text-white" />
-        <input type="text" placeholder="Đáp án C (Vàng)..." required class="q-opt-2 px-3 py-1.5 bg-amber-950/40 border border-amber-500/40 rounded-lg text-white" />
-        <input type="text" placeholder="Đáp án D (Xanh lá)..." required class="q-opt-3 px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-white" />
-      </div>
+    const currentCount = list.querySelectorAll(".question-item").length;
+    const temp = document.createElement("div");
+    temp.innerHTML = this.renderQuestionItemHtml(null, currentCount + 1);
+    const newItem = temp.firstElementChild;
+    list.appendChild(newItem);
 
-      <div class="flex items-center justify-between text-xs pt-1">
-        <div class="flex items-center gap-2">
-          <span class="text-slate-400">Đáp án đúng:</span>
-          <select class="q-correct bg-slate-900 border border-slate-700 text-xs rounded-lg px-2 py-1 text-emerald-400 font-bold">
-            <option value="0">Đáp án A</option>
-            <option value="1">Đáp án B</option>
-            <option value="2">Đáp án C</option>
-            <option value="3">Đáp án D</option>
-          </select>
-        </div>
-      </div>
-    `;
-    list.appendChild(div);
+    this.reindexQuestions();
     if (window.lucide) lucide.createIcons();
+
+    newItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  saveNewQuiz(e) {
-    e.preventDefault();
-    const title = document.getElementById("quiz-title").value.trim();
-    const desc = document.getElementById("quiz-desc").value.trim();
+  removeQuestionField(btn) {
+    const list = document.getElementById("questions-list-builder");
+    if (!list) return;
+    const items = list.querySelectorAll(".question-item");
+    if (items.length <= 1) {
+      alert("Bộ câu hỏi phải có ít nhất 1 câu hỏi!");
+      return;
+    }
+    const item = btn.closest(".question-item");
+    if (item) {
+      item.remove();
+      this.reindexQuestions();
+    }
+  }
+
+  reindexQuestions() {
+    const list = document.getElementById("questions-list-builder");
+    if (!list) return;
+    const items = list.querySelectorAll(".question-item");
+    items.forEach((item, idx) => {
+      const label = item.querySelector(".question-number-label");
+      if (label) label.textContent = `CÂU HỎI ${idx + 1}`;
+    });
+    const countEl = document.getElementById("modal-questions-count");
+    if (countEl) countEl.textContent = items.length;
+  }
+
+  saveQuizFromModal(e, quizId, andPlayImmediately = false) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const titleEl = document.getElementById("quiz-title");
+    const categoryEl = document.getElementById("quiz-category");
+    const descEl = document.getElementById("quiz-desc");
+
+    const title = titleEl ? titleEl.value.trim() : "";
+    const category = categoryEl ? categoryEl.value.trim() : "";
+    const desc = descEl ? descEl.value.trim() : "";
+
+    if (!title) {
+      alert("Vui lòng nhập tên bộ câu hỏi!");
+      if (titleEl) titleEl.focus();
+      return;
+    }
 
     const items = document.querySelectorAll(".question-item");
     const questions = [];
 
-    items.forEach((item) => {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
       const qText = item.querySelector(".q-text").value.trim();
       const time = Number(item.querySelector(".q-time").value) || 15;
       const opt0 = item.querySelector(".q-opt-0").value.trim();
@@ -1094,29 +1282,48 @@ class HostController {
       const opt2 = item.querySelector(".q-opt-2").value.trim();
       const opt3 = item.querySelector(".q-opt-3").value.trim();
       const correct = Number(item.querySelector(".q-correct").value) || 0;
+      const explanation = item.querySelector(".q-explanation") ? item.querySelector(".q-explanation").value.trim() : "";
 
-      if (qText && opt0 && opt1) {
-        questions.push({
-          question: qText,
-          choices: [opt0, opt1, opt2 || "Đáp án C", opt3 || "Đáp án D"],
-          correct: correct,
-          time: time,
-          explanation: ""
-        });
+      if (!qText) {
+        alert(`Câu hỏi ${i + 1} chưa có nội dung!`);
+        item.querySelector(".q-text").focus();
+        return;
       }
-    });
 
-    if (questions.length === 0) return;
+      if (!opt0 || !opt1) {
+        alert(`Câu hỏi ${i + 1} cần có ít nhất 2 đáp án A và B!`);
+        return;
+      }
 
-    const newQuiz = window.quizDataManager.saveQuiz({
+      questions.push({
+        question: qText,
+        choices: [opt0, opt1, opt2 || "Đáp án C", opt3 || "Đáp án D"],
+        correct: Math.min(correct, 3),
+        time: time,
+        explanation: explanation
+      });
+    }
+
+    if (questions.length === 0) {
+      alert("Bộ câu hỏi phải có ít nhất 1 câu hỏi hoàn chỉnh!");
+      return;
+    }
+
+    const savedQuiz = window.quizDataManager.saveQuiz({
+      id: quizId || undefined,
       title: title,
+      category: category || "Tự tạo",
       description: desc,
-      category: "Tự tạo",
       questions: questions
     });
 
-    document.getElementById("quiz-modal-container").innerHTML = "";
-    this.renderQuizSelector();
+    this.closeQuizModal();
+
+    if (andPlayImmediately && savedQuiz && savedQuiz.id) {
+      this.startLobby(savedQuiz.id);
+    } else {
+      this.renderQuizSelector();
+    }
   }
 
   handleImportJson(e) {

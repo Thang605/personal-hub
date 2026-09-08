@@ -17,10 +17,10 @@ class QuizDataManager {
         this.quizzes = JSON.parse(saved);
       } catch (e) {
         console.error("Lỗi đọc câu hỏi từ LocalStorage:", e);
-        this.quizzes = [...window.DEFAULT_QUIZZES];
+        this.quizzes = JSON.parse(JSON.stringify(window.DEFAULT_QUIZZES || []));
       }
     } else {
-      this.quizzes = [...window.DEFAULT_QUIZZES];
+      this.quizzes = JSON.parse(JSON.stringify(window.DEFAULT_QUIZZES || []));
       this.save();
     }
   }
@@ -57,7 +57,7 @@ class QuizDataManager {
   }
 
   resetToDefault() {
-    this.quizzes = [...window.DEFAULT_QUIZZES];
+    this.quizzes = JSON.parse(JSON.stringify(window.DEFAULT_QUIZZES || []));
     this.save();
   }
 
