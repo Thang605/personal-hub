@@ -1,6 +1,6 @@
 /**
  * Slide Presentation Controller (Màn Hình Chiếu Câu Hỏi Theo Đề Mục Slide)
- * Tích hợp Bảng Thống Kê Số Người Làm Đúng / Sai Trực Tiếp Theo Thời Gian Thực Cho Giáo Viên.
+ * Tích Hợp Thường Trực Mã QR + Bảng Kết Quả Trả Lời Đúng/Sai Của Học Viên Ngay Trên Màn Hình.
  */
 
 class SlideController {
@@ -15,7 +15,6 @@ class SlideController {
     this.timeRemaining = 20;
     this.totalTime = 20;
     this.isTimerPaused = false;
-    this.showQrModal = false;
     this.network = null;
     this.pin = null;
     this.liveVotes = [0, 0, 0, 0];
@@ -66,7 +65,7 @@ class SlideController {
     this.timeRemaining = this.totalTime;
     this.pin = "sec_" + this.lessonId + "_" + this.sectionIndex;
 
-    // 3. Khởi tạo kết nối mạng bình chọn thời gian thực an toàn
+    // 3. Khởi tạo kết nối mạng bình chọn thời gian thực
     this._initLiveNetwork();
 
     // 4. Render giao diện
@@ -159,7 +158,7 @@ class SlideController {
   }
 
   // =========================================================================
-  // CẬP NHẬT THỐNG KÊ SỐ NGƯỜI LÀM ĐÚNG / SAI CHO GIÁO VIÊN
+  // CẬP NHẬT BẢNG KẾT QUẢ ĐÚNG / SAI & PHÂN BỔ TRỰC TIẾP
   // =========================================================================
   updateLiveVotesDisplay() {
     const correctIdx = this.section.correct;
@@ -168,79 +167,50 @@ class SlideController {
     const correctPct = this.votedCount > 0 ? Math.round((correctVotes / this.votedCount) * 100) : 0;
     const wrongPct = this.votedCount > 0 ? (100 - correctPct) : 0;
 
-    // 1. Cập nhật các badge thống kê trên thanh điều khiển của Giáo viên
-    const totalEl = document.getElementById("teacher-stat-total");
-    const correctEl = document.getElementById("teacher-stat-correct");
-    const wrongEl = document.getElementById("teacher-stat-wrong");
+    // 1. Cập nhật Bảng Thống Kê Nhanh (Sidebar Results Panel)
+    const sideTotal = document.getElementById("side-stat-total");
+    const sideCorrect = document.getElementById("side-stat-correct");
+    const sideWrong = document.getElementById("side-stat-wrong");
+    const sideAccuracyBar = document.getElementById("side-accuracy-bar");
 
-    if (totalEl) totalEl.textContent = `${this.votedCount} người`;
-    if (correctEl) correctEl.textContent = `Đúng: ${correctVotes} (${correctPct}%)`;
-    if (wrongEl) wrongEl.textContent = `Chưa đúng: ${wrongVotes} (${wrongPct}%)`;
+    if (sideTotal) sideTotal.textContent = `${this.votedCount}`;
+    if (sideCorrect) sideCorrect.textContent = `${correctVotes} (${correctPct}%)`;
+    if (sideWrong) sideWrong.textContent = `${wrongVotes} (${wrongPct}%)`;
+    if (sideAccuracyBar) sideAccuracyBar.style.width = `${correctPct}%`;
 
-    // 2. Cập nhật số liệu trên từng ô A, B, C, D
+    // 2. Cập nhật danh sách phân bổ A, B, C, D trong bảng kết quả
     for (let i = 0; i < 4; i++) {
-      const bar = document.getElementById(`slide-bar-${i}`);
-      const countLabel = document.getElementById(`slide-vote-count-${i}`);
       const votes = this.liveVotes[i];
       const pct = this.votedCount > 0 ? Math.round((votes / this.votedCount) * 100) : 0;
+      
+      const sideBar = document.getElementById(`side-bar-${i}`);
+      const sideText = document.getElementById(`side-text-${i}`);
+      const cardBar = document.getElementById(`slide-bar-${i}`);
+      const cardCount = document.getElementById(`slide-vote-count-${i}`);
 
-      if (bar) bar.style.width = `${pct}%`;
-      if (countLabel) countLabel.textContent = `${votes} (${pct}%)`;
+      if (sideBar) sideBar.style.width = `${pct}%`;
+      if (sideText) sideText.textContent = `${votes} (${pct}%)`;
+      if (cardBar) cardBar.style.width = `${pct}%`;
+      if (cardCount) cardCount.textContent = `${votes} (${pct}%)`;
     }
 
-    // 3. Cập nhật báo cáo tổng kết trong khung giải thích
-    this.updateClassAnalyticsBox(correctVotes, wrongVotes, correctPct);
-  }
-
-  updateClassAnalyticsBox(correctVotes, wrongVotes, correctPct) {
-    const analyticsBox = document.getElementById("class-analytics-content");
-    if (!analyticsBox) return;
-
-    let evaluationText = "";
-    let evalColor = "text-emerald-400";
-    let evalBg = "bg-emerald-950/60 border-emerald-500/40";
-
-    if (this.votedCount === 0) {
-      evaluationText = "Chưa có lượt bình chọn nào từ học viên.";
-      evalColor = "text-slate-400";
-      evalBg = "bg-slate-800/60 border-slate-700";
-    } else if (correctPct >= 80) {
-      evaluationText = `🌟 <strong>Lớp tiếp thu xuất sắc (${correctPct}% làm đúng)</strong>: Toàn bộ lớp đã nắm rất chắc kiến thức trọng tâm của đề mục này!`;
-      evalColor = "text-emerald-300";
-      evalBg = "bg-emerald-950/60 border-emerald-500/40";
-    } else if (correctPct >= 50) {
-      evaluationText = `👍 <strong>Lớp nắm bài ở mức khá (${correctPct}% làm đúng)</strong>: Đa số đã hiểu bài. Giáo viên có thể nhắc lại điểm cốt lõi cho ${wrongVotes} bạn còn nhầm lẫn.`;
-      evalColor = "text-amber-300";
-      evalBg = "bg-amber-950/60 border-amber-500/40";
-    } else {
-      evaluationText = `💡 <strong>Cần lưu ý (${correctPct}% làm đúng)</strong>: Có ${wrongVotes} học viên chưa chọn đúng. Giáo viên nên dành 1-2 phút giải thích lại cơ chế của đề mục này.`;
-      evalColor = "text-rose-300";
-      evalBg = "bg-rose-950/60 border-rose-500/40";
+    // 3. Cập nhật đánh giá mức độ tiếp thu
+    const evalText = document.getElementById("side-eval-text");
+    if (evalText) {
+      if (this.votedCount === 0) {
+        evalText.innerHTML = "Đang chờ học viên quét mã QR và gửi bình chọn...";
+      } else if (correctPct >= 80) {
+        evalText.innerHTML = `🌟 <strong>Xuất sắc (${correctPct}% đúng)</strong>: Toàn bộ lớp đã hiểu rất rõ đề mục này!`;
+      } else if (correctPct >= 50) {
+        evalText.innerHTML = `👍 <strong>Khá (${correctPct}% đúng)</strong>: Đa số đã nắm được bài, có ${wrongVotes} bạn còn nhầm lẫn.`;
+      } else {
+        evalText.innerHTML = `💡 <strong>Lưu ý (${correctPct}% đúng)</strong>: Có ${wrongVotes} bạn chưa đúng, giáo viên nên giải thích lại.`;
+      }
     }
-
-    analyticsBox.innerHTML = `
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3">
-        <div class="p-3 bg-slate-800/80 rounded-2xl border border-slate-700">
-          <span class="text-[11px] text-slate-400 font-bold block uppercase">Tổng số học viên làm</span>
-          <span class="text-xl font-black text-white font-mono">${this.votedCount}</span>
-        </div>
-        <div class="p-3 bg-emerald-950/70 rounded-2xl border border-emerald-500/50">
-          <span class="text-[11px] text-emerald-300 font-bold block uppercase">Số người làm ĐÚNG</span>
-          <span class="text-xl font-black text-emerald-400 font-mono">${correctVotes} <span class="text-xs">(${correctPct}%)</span></span>
-        </div>
-        <div class="p-3 bg-rose-950/70 rounded-2xl border border-rose-500/50">
-          <span class="text-[11px] text-rose-300 font-bold block uppercase">Số người làm SAI</span>
-          <span class="text-xl font-black text-rose-400 font-mono">${wrongVotes} <span class="text-xs">(${100 - correctPct}%)</span></span>
-        </div>
-      </div>
-      <div class="p-3 rounded-2xl border text-xs leading-relaxed ${evalBg} ${evalColor}">
-        ${evaluationText}
-      </div>
-    `;
   }
 
   // =========================================================================
-  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP
+  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP (KHI HỌC VIÊN QUÉT QR BẰNG ĐIỆN THOẠI)
   // =========================================================================
   selectOption(idx) {
     if (this.mySelectedOption !== null) return;
@@ -263,17 +233,15 @@ class SlideController {
     try {
       if (isCorrect) {
         window.soundEffects.playCorrect();
+        if (window.confetti) {
+          window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
+        }
       } else {
         window.soundEffects.playWrong();
       }
     } catch (e) {}
 
-    try {
-      if (isCorrect && window.confetti) {
-        window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
-      }
-    } catch (e) {}
-
+    // Làm nổi bật thẻ được chọn
     for (let i = 0; i < 4; i++) {
       const card = document.getElementById(`opt-card-${i}`);
       if (card) {
@@ -292,6 +260,7 @@ class SlideController {
       }
     }
 
+    // Hiển thị khung giải thích
     const explainBox = document.getElementById("explanation-box");
     if (explainBox) {
       explainBox.classList.remove("hidden");
@@ -389,7 +358,7 @@ class SlideController {
   }
 
   // ==========================================
-  // RENDER MÀN HÌNH CHÍNH
+  // RENDER MÀN HÌNH CHÍNH (SIDE-BY-SIDE: CÂU HỎI + MÃ QR + BẢNG KẾT QUẢ LIVE)
   // ==========================================
   render() {
     const container = document.getElementById("slide-app");
@@ -412,14 +381,23 @@ class SlideController {
     ];
 
     container.innerHTML = `
-      <div class="min-h-screen flex flex-col justify-between p-3 sm:p-6 md:p-8 bg-game-dark bg-game-glow text-white">
+      <div class="min-h-screen flex flex-col justify-between p-3 sm:p-5 md:p-6 bg-game-dark bg-game-glow text-white">
         
-        <!-- Top Bar: Navigation & Slide Context -->
-        <header class="max-w-6xl mx-auto w-full flex items-center justify-between gap-4 border-b border-slate-800 pb-3">
+        <!-- Zalo In-App Browser Compatibility Banner -->
+        ${this.isZalo ? `
+          <div class="max-w-7xl mx-auto w-full mb-2 p-2.5 bg-indigo-900/90 border border-indigo-400/50 rounded-2xl flex items-center justify-between text-xs text-indigo-100">
+            <span class="flex items-center gap-1.5 font-bold">
+              <span>📱</span> Bạn đang mở trong Zalo. Hãy chạm vào 1 trong 4 ô màu để chọn đáp án!
+            </span>
+          </div>
+        ` : ''}
+
+        <!-- Top Header -->
+        <header class="max-w-7xl mx-auto w-full flex items-center justify-between gap-4 border-b border-slate-800 pb-3">
           <div class="flex items-center gap-3">
             <span class="px-3 py-1 rounded-full text-xs font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1.5 shrink-0">
               <i data-lucide="presentation" class="w-3.5 h-3.5 text-indigo-400"></i>
-              <span>CHECKPOINT</span>
+              <span>SLIDE CHECKPOINT</span>
             </span>
             <div class="truncate">
               <h1 class="text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-xs sm:max-w-md md:max-w-xl">${this.lesson.title}</h1>
@@ -431,147 +409,202 @@ class SlideController {
             <button type="button" onclick="slideApp.toggleFullscreen()" class="p-2 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Toàn màn hình">
               <i data-lucide="maximize" class="w-4 h-4"></i>
             </button>
-            <button type="button" onclick="slideApp.toggleQrModal()" class="px-3 py-1.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
-              <i data-lucide="qr-code" class="w-3.5 h-3.5 text-pink-400"></i>
-              <span class="hidden sm:inline">Mã QR</span>
-            </button>
+            <a href="slide-builder.html" class="p-2 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Quản lý bài giảng">
+              <i data-lucide="settings" class="w-4 h-4"></i>
+            </a>
           </div>
         </header>
 
-        <!-- Main Question Presentation Area -->
-        <main class="max-w-6xl mx-auto w-full my-auto py-3 space-y-4 sm:space-y-6">
+        <!-- Main Layout: 2 Columns (Left: Question & Options / Right: QR Code & Live Results Table) -->
+        <main class="max-w-7xl mx-auto w-full my-auto py-3 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           
-          <!-- TEACHER LIVE DASHBOARD BAR: THỐNG KÊ ĐÚNG / SAI TRỰC TIẾP -->
-          <div class="glass-panel p-3 sm:p-4 rounded-2xl border border-indigo-500/30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-black text-indigo-300 uppercase flex items-center gap-1.5">
-                <i data-lucide="bar-chart-2" class="w-4 h-4 text-pink-400"></i>
-                <span>Thống kê kết quả:</span>
-              </span>
+          <!-- LEFT COLUMN (7 Cols / Question & 4 Buttons) -->
+          <div class="lg:col-span-8 space-y-4">
+            
+            <!-- Timer Bar & Status Row -->
+            <div class="space-y-1.5">
+              <div class="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
+                <div id="slide-timer-progress" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
+              </div>
+              
+              <div class="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
+                <div class="flex items-center gap-3">
+                  <span class="flex items-center gap-1 text-amber-400 font-mono text-sm font-black">
+                    <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+                    <span id="slide-timer-num">${this.timeRemaining}</span>s
+                  </span>
+                  <button type="button" onclick="slideApp.togglePauseTimer()" class="hover:text-white p-1" title="Tạm dừng / Đếm tiếp">
+                    <i id="pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
+                  </button>
+                  <button type="button" onclick="slideApp.resetTimer()" class="hover:text-white p-1" title="Đếm lại">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+
+                <span class="text-indigo-300 text-[11px] font-semibold">
+                  👉 Chạm vào 1 ô màu để chọn đáp án
+                </span>
+              </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 text-xs font-bold font-mono">
-              <span class="px-3 py-1 bg-slate-800/90 text-slate-200 rounded-xl border border-slate-700">
-                👥 <span id="teacher-stat-total">0 người</span>
+            <!-- Big Question Card -->
+            <div class="glass-panel p-5 sm:p-7 rounded-3xl text-center shadow-xl border-indigo-500/20 space-y-2">
+              <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-black bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 uppercase tracking-wider">
+                Câu hỏi củng cố Đề mục ${this.sectionIndex}
               </span>
-              <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/40">
-                ✅ <span id="teacher-stat-correct">Đúng: 0 (0%)</span>
-              </span>
-              <span class="px-3 py-1 bg-rose-500/20 text-rose-300 rounded-xl border border-rose-500/40">
-                ❌ <span id="teacher-stat-wrong">Chưa đúng: 0 (0%)</span>
-              </span>
+              <h2 class="text-lg sm:text-2xl md:text-3xl font-black text-white leading-snug tracking-tight">${currentSec.question}</h2>
             </div>
 
-            <!-- Timer info -->
-            <div class="flex items-center gap-2">
-              <span class="flex items-center gap-1 text-amber-400 font-mono text-xs sm:text-sm font-black">
-                <i data-lucide="timer" class="w-3.5 h-3.5"></i>
-                <span id="slide-timer-num">${this.timeRemaining}</span>s
-              </span>
-              <button type="button" onclick="slideApp.togglePauseTimer()" class="p-1 hover:text-white" title="Tạm dừng/Tiếp tục">
-                <i id="pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
-              </button>
-              <button type="button" onclick="slideApp.resetTimer()" class="p-1 hover:text-white" title="Đếm lại">
-                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Timer Bar -->
-          <div class="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
-            <div id="slide-timer-progress" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
-          </div>
-
-          <!-- Question Card -->
-          <div class="glass-panel p-6 sm:p-8 md:p-10 rounded-3xl text-center shadow-2xl border-indigo-500/20 space-y-2">
-            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-black bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 uppercase tracking-wider">
-              Câu hỏi củng cố Đề mục ${this.sectionIndex}
-            </span>
-            <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white leading-snug tracking-tight">${currentSec.question}</h2>
-            <p class="text-[11px] sm:text-xs text-indigo-300 font-semibold flex items-center justify-center gap-1.5 pt-1">
-              <span>👉 Chạm vào 1 phương án (A, B, C, D) để chọn câu trả lời</span>
-            </p>
-          </div>
-
-          <!-- 4 Native BUTTON Option Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-            ${currentSec.choices.map((choice, idx) => {
-              const opt = optionColors[idx];
-              return `
-                <button 
-                  type="button"
-                  id="opt-card-${idx}" 
-                  onclick="slideApp.selectOption(${idx})" 
-                  class="choice-btn glass-card text-left w-full relative overflow-hidden p-4 sm:p-5 md:p-6 rounded-3xl border border-slate-700/60 transition duration-150 cursor-pointer hover:border-indigo-400 active:scale-95 group shadow-lg focus:outline-none">
-                  
-                  <!-- Live Vote Progress Bar Fill -->
-                  <div id="slide-bar-${idx}" class="absolute inset-0 ${opt.barClass} opacity-30 transition-all duration-300 ease-out pointer-events-none" style="width: 0%;"></div>
-
-                  <div class="relative z-10 flex items-center justify-between gap-3 pointer-events-none">
-                    <div class="flex items-center gap-3 sm:gap-4">
-                      <span class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${opt.bg} text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg shrink-0 group-hover:scale-105 transition">
-                        ${opt.label}
-                      </span>
-                      <span class="text-sm sm:text-base font-bold text-white leading-snug">${choice}</span>
-                    </div>
+            <!-- 4 Option Buttons (Touch & Click) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              ${currentSec.choices.map((choice, idx) => {
+                const opt = optionColors[idx];
+                return `
+                  <button 
+                    type="button"
+                    id="opt-card-${idx}" 
+                    onclick="slideApp.selectOption(${idx})" 
+                    class="choice-btn glass-card text-left w-full relative overflow-hidden p-3.5 sm:p-4 rounded-2xl border border-slate-700/60 transition duration-150 cursor-pointer hover:border-indigo-400 active:scale-95 group shadow-lg focus:outline-none">
                     
-                    <div class="flex flex-col items-end gap-1 shrink-0">
-                      <span class="choice-tag text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
-                        Chọn
-                      </span>
-                      <span id="slide-vote-count-${idx}" class="text-[10px] font-mono text-slate-400">
-                        0 (0%)
-                      </span>
+                    <div id="slide-bar-${idx}" class="absolute inset-0 ${opt.barClass} opacity-30 transition-all duration-300 ease-out pointer-events-none" style="width: 0%;"></div>
+
+                    <div class="relative z-10 flex items-center justify-between gap-3 pointer-events-none">
+                      <div class="flex items-center gap-3">
+                        <span class="w-9 h-9 rounded-xl ${opt.bg} text-white font-black text-base flex items-center justify-center shadow-md shrink-0 group-hover:scale-105 transition">
+                          ${opt.label}
+                        </span>
+                        <span class="text-xs sm:text-sm font-bold text-white leading-snug">${choice}</span>
+                      </div>
+                      
+                      <div class="flex flex-col items-end gap-0.5 shrink-0">
+                        <span class="choice-tag text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                          Chọn
+                        </span>
+                        <span id="slide-vote-count-${idx}" class="text-[10px] font-mono text-slate-400">
+                          0 (0%)
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              `;
-            }).join("")}
-          </div>
+                  </button>
+                `;
+              }).join("")}
+            </div>
 
-          <!-- Reveal Button -->
-          <div class="text-center pt-1">
-            <button 
-              type="button"
-              id="reveal-btn" 
-              onclick="slideApp.revealAnswer()" 
-              class="px-6 py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto transition transform hover:scale-105 active:scale-95">
-              <i data-lucide="lightbulb" class="w-4 h-4 fill-white"></i>
-              <span>Xem Đáp Án Đúng & Thống Kê Chi Tiết</span>
-            </button>
-          </div>
+            <!-- Reveal Button -->
+            <div class="text-center pt-1">
+              <button 
+                type="button"
+                id="reveal-btn" 
+                onclick="slideApp.revealAnswer()" 
+                class="px-6 py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto transition transform hover:scale-105 active:scale-95">
+                <i data-lucide="lightbulb" class="w-4 h-4 fill-white"></i>
+                <span>Xem Đáp Án Đúng & Giải Thích Chi Tiết</span>
+              </button>
+            </div>
 
-          <!-- Explanation & Class Analytics Box -->
-          <div id="explanation-box" class="hidden p-5 sm:p-6 md:p-8 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl space-y-4 animate-fade-in">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <!-- Explanation & Key Takeaways Card -->
+            <div id="explanation-box" class="hidden p-5 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl space-y-3 animate-fade-in">
               <div id="explain-status-header">
-                <span class="text-sm md:text-base font-black uppercase text-emerald-400 flex items-center gap-2">
+                <span class="text-sm font-black uppercase text-emerald-400 flex items-center gap-2">
                   <i data-lucide="check-circle" class="w-5 h-5"></i>
                   Đáp án chính xác: Phương án ${["A", "B", "C", "D"][currentSec.correct]}
                 </span>
               </div>
-              <span class="text-[11px] text-slate-400 font-semibold hidden sm:inline">Phân tích kết quả lớp học</span>
+              <p class="text-xs sm:text-sm text-slate-200 leading-relaxed font-medium">${currentSec.explanation || "Chúc mừng bạn đã nắm vững nội dung của đề mục này!"}</p>
+              ${currentSec.keyTakeaway ? `
+                <div class="p-3 bg-indigo-950/60 border border-indigo-500/40 rounded-xl text-xs text-indigo-200 font-bold leading-relaxed">
+                  ${currentSec.keyTakeaway}
+                </div>
+              ` : ""}
             </div>
 
-            <!-- Khung thống kê sư phạm cho Giáo Viên -->
-            <div id="class-analytics-content"></div>
+          </div>
 
-            <div class="space-y-1 pt-1">
-              <span class="text-xs font-bold text-indigo-300 block">💡 Giải thích chi tiết:</span>
-              <p class="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-medium">${currentSec.explanation || "Chúc mừng bạn đã nắm vững nội dung của đề mục này!"}</p>
-            </div>
-
-            ${currentSec.keyTakeaway ? `
-              <div class="p-3.5 sm:p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 text-xs sm:text-sm text-indigo-200 font-bold leading-relaxed">
-                ${currentSec.keyTakeaway}
+          <!-- RIGHT COLUMN (4 Cols / PERMANENT QR CODE & LIVE RESULTS TABLE) -->
+          <div class="lg:col-span-4 space-y-4">
+            
+            <!-- QR CODE BOX (Thường Trực Trên Màn Hình Máy Chiếu) -->
+            <div class="glass-panel p-5 rounded-3xl text-center space-y-3 border-indigo-500/30 shadow-xl">
+              <div class="space-y-0.5">
+                <span class="text-[10px] font-black uppercase tracking-wider text-pink-400 flex items-center justify-center gap-1">
+                  <i data-lucide="scan-line" class="w-3.5 h-3.5"></i>
+                  <span>Quét Mã QR Để Trả Lời</span>
+                </span>
+                <p class="text-xs font-bold text-white">Dùng Zalo hoặc Camera điện thoại</p>
               </div>
-            ` : ""}
+
+              <div class="p-3 bg-white rounded-2xl mx-auto inline-block shadow-lg">
+                <div id="live-side-qrcode" class="w-[140px] h-[140px] sm:w-[150px] sm:h-[150px] flex items-center justify-center"></div>
+              </div>
+
+              <div class="text-[11px] text-slate-400 font-medium">
+                Học viên quét mã để trả lời ngay trên điện thoại
+              </div>
+            </div>
+
+            <!-- BẢNG KẾT QUẢ TRẢ LỜI TRỰC TIẾP (LIVE RESULTS TABLE) -->
+            <div class="glass-panel p-5 rounded-3xl space-y-3.5 border-indigo-500/30 shadow-xl">
+              <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <h3 class="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+                  <i data-lucide="bar-chart-2" class="w-4 h-4 text-pink-400"></i>
+                  <span>Bảng Kết Quả Lớp Học</span>
+                </h3>
+                <span class="text-[11px] font-mono text-slate-400">Thời gian thực</span>
+              </div>
+
+              <!-- Quick 3 Stats -->
+              <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+                <div class="p-2 bg-slate-900/80 rounded-xl border border-slate-700/80">
+                  <span class="text-[9px] font-bold text-slate-400 block uppercase">Đã làm</span>
+                  <span id="side-stat-total" class="text-base font-black text-white">0</span>
+                </div>
+                <div class="p-2 bg-emerald-950/70 rounded-xl border border-emerald-500/40">
+                  <span class="text-[9px] font-bold text-emerald-400 block uppercase">Đúng</span>
+                  <span id="side-stat-correct" class="text-xs font-black text-emerald-300">0 (0%)</span>
+                </div>
+                <div class="p-2 bg-rose-950/70 rounded-xl border border-rose-500/40">
+                  <span class="text-[9px] font-bold text-rose-400 block uppercase">Sai</span>
+                  <span id="side-stat-wrong" class="text-xs font-black text-rose-300">0 (0%)</span>
+                </div>
+              </div>
+
+              <!-- Accuracy Progress Bar -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-[11px] text-slate-400 font-bold">
+                  <span>Tỉ lệ trả lời đúng của lớp</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                  <div id="side-accuracy-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <!-- Phân Bổ Chi Tiết 4 Phương Án A, B, C, D -->
+              <div class="space-y-1.5 pt-1 text-xs">
+                ${['A', 'B', 'C', 'D'].map((lbl, idx) => `
+                  <div class="flex items-center justify-between gap-2 p-1.5 bg-slate-900/60 rounded-xl relative overflow-hidden">
+                    <div id="side-bar-${idx}" class="absolute inset-0 ${optionColors[idx].barClass} opacity-30 transition-all duration-300" style="width: 0%;"></div>
+                    <span class="relative z-10 font-bold text-white flex items-center gap-1.5 text-[11px]">
+                      <span class="w-4 h-4 rounded-md ${optionColors[idx].bg} text-white font-black text-[9px] flex items-center justify-center">${lbl}</span>
+                      ${idx === currentSec.correct ? '<span class="text-emerald-400 text-[10px]">(Đúng)</span>' : ''}
+                    </span>
+                    <span id="side-text-${idx}" class="relative z-10 font-mono text-[10px] font-bold text-slate-300">0 (0%)</span>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- Đánh Giá Mức Độ Tiếp Thu -->
+              <div id="side-eval-text" class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 text-[11px] leading-relaxed text-slate-400">
+                Đang chờ học viên quét mã QR và gửi bình chọn...
+              </div>
+
+            </div>
+
           </div>
 
         </main>
 
         <!-- Bottom Bar: Section Pagination & Return to PowerPoint -->
-        <footer class="max-w-6xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800 text-xs">
+        <footer class="max-w-7xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800 text-xs">
           
           <div class="flex items-center gap-2">
             ${hasPrev ? `
@@ -603,28 +636,6 @@ class SlideController {
           </div>
         </footer>
 
-        <!-- QR Code Slide Modal -->
-        <div id="slide-qr-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-xs sm:max-w-sm w-full text-center space-y-4 border-indigo-500/40 animate-pop-in">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-              <h3 class="text-sm sm:text-base font-black text-white">Quét QR Để Bình Chọn</h3>
-              <button type="button" onclick="slideApp.toggleQrModal()" class="text-slate-400 hover:text-white p-1">
-                <i data-lucide="x" class="w-4 h-4"></i>
-              </button>
-            </div>
-
-            <div class="p-3 bg-white rounded-2xl mx-auto inline-block shadow-2xl">
-              <div id="section-qrcode-box" class="w-[160px] h-[160px] flex items-center justify-center"></div>
-            </div>
-
-            <p class="text-[11px] text-slate-300">Quét mã bằng camera điện thoại hoặc Zalo để chọn đáp án A, B, C, D trực tiếp.</p>
-
-            <button type="button" onclick="slideApp.toggleQrModal()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white shadow-lg">
-              Đóng
-            </button>
-          </div>
-        </div>
-
       </div>
     `;
 
@@ -632,14 +643,15 @@ class SlideController {
       try { lucide.createIcons(); } catch (e) {}
     }
 
+    // Sinh mã QR thường trực trên màn hình
     setTimeout(() => {
-      const qrEl = document.getElementById("section-qrcode-box");
+      const qrEl = document.getElementById("live-side-qrcode");
       if (qrEl && window.QRCode) {
         qrEl.innerHTML = "";
         new QRCode(qrEl, {
           text: playerUrl,
-          width: 150,
-          height: 150,
+          width: 140,
+          height: 140,
           colorDark: "#0f172a",
           colorLight: "#ffffff",
           correctLevel: QRCode.CorrectLevel.M
@@ -648,18 +660,6 @@ class SlideController {
     }, 100);
 
     this.updateLiveVotesDisplay();
-  }
-
-  toggleQrModal() {
-    this.showQrModal = !this.showQrModal;
-    const modal = document.getElementById("slide-qr-modal");
-    if (modal) {
-      if (this.showQrModal) {
-        modal.classList.remove("hidden");
-      } else {
-        modal.classList.add("hidden");
-      }
-    }
   }
 
   toggleFullscreen() {
