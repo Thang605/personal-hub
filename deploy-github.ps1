@@ -5,7 +5,7 @@ if (-not (Get-Command "git" -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   TRIỂN KHAI PERSONAL HUB & QUIZ LIVE LÊN GITHUB PAGES  " -ForegroundColor Green
+Write-Host "   TRIỂN KHAI GAME CHÈO THUYỀN LÊN GITHUB PAGES          " -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -19,7 +19,7 @@ $baseUrl = "https://github.com/$repoName.git"
 & $git remote remove origin 2>$null
 & $git remote add origin $baseUrl
 & $git add .
-& $git commit -m "Fix: QR code link and realtime voting sync for PowerPoint Web Viewer" 2>$null
+& $git commit -m "Deploy Game Cheo Thuyen Dua Ngang Realtime QR" 2>$null
 & $git branch -M main
 
 Write-Host "Đang đẩy toàn bộ mã nguồn lên GitHub..." -ForegroundColor Green
