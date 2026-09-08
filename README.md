@@ -37,6 +37,13 @@
 - Xuất toàn bộ cơ sở dữ liệu ra tệp sao lưu `.json` bất cứ lúc nào.
 - Dễ dàng chuyển dữ liệu giữa các máy tính khác nhau qua USB hoặc đồng bộ qua thư mục Dropbox.
 
+### 8. 🎮 Đấu Trí & Đố Vui Trực Tuyến Nhiều Người Chơi (Live Multiplayer Quiz Show)
+- **Quét mã QR / Nhập PIN**: Người chơi dùng điện thoại quét mã QR từ màn hình Host/Máy chiếu để tham gia sảnh chờ ngay lập tức.
+- **Công nghệ WebRTC P2P Real-time**: Kết nối trực tiếp nhiều người chơi với độ trễ cực thấp, không cần cài đặt hay thuê máy chủ.
+- **Hiển thị lựa chọn trực tiếp khi chưa hết giờ (Live Polls)**: Cập nhật tức thời biểu đồ phân bổ số người chọn A, B, C, D ngay trong lúc đồng hồ đếm ngược đang chạy.
+- **Tính điểm tốc độ & Bục vinh danh**: Thưởng điểm cho phản xạ nhanh, thưởng chuỗi đúng (Streak), bục Top 3 với hiệu ứng pháo hoa Confetti và âm thanh sống động.
+- **Tùy biến bộ câu hỏi**: Tích hợp sẵn gói câu hỏi AI, Công nghệ, Đố vui IQ, Địa lý Việt Nam và công cụ tạo câu hỏi mới.
+
 ---
 
 ## 🚀 Hướng Dẫn Sử Dụng

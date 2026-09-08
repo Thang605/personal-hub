@@ -114,6 +114,7 @@ class AppController {
       { id: "bookmarks", label: "Bookmarks", icon: "bookmark" },
       { id: "finance", label: "Tài chính & Thu chi", icon: "wallet" },
       { id: "tasks", label: "Việc cần làm", icon: "check-square" },
+      { id: "quiz", label: "Đấu Trí Quiz Live", icon: "gamepad-2", badge: "HOT", link: "quiz/index.html" },
       { id: "settings", label: "Cài đặt & Sao lưu", icon: "settings" }
     ];
 
@@ -123,7 +124,7 @@ class AppController {
     if (sidebarNav) {
       sidebarNav.innerHTML = menuItems.map(item => `
         <button 
-          onclick="window.app.navigate('${item.id}')"
+          onclick="${item.link ? `window.location.href='${item.link}'` : `window.app.navigate('${item.id}')`}"
           class="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-xs transition group ${
             this.currentView === item.id 
               ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' 
@@ -135,7 +136,7 @@ class AppController {
           </div>
           ${item.badge ? `
             <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
-              item.badge === 'Mở' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-700 text-slate-300'
+              item.badge === 'Mở' ? 'bg-emerald-500/20 text-emerald-300' : item.badge === 'HOT' ? 'bg-pink-500 text-white animate-pulse' : 'bg-slate-700 text-slate-300'
             }">${item.badge}</span>
           ` : ''}
         </button>

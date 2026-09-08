@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz Live Show - Đấu Trí Trực Tuyến Thời Gian Thực</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              500: '#6366f1',
+              600: '#4f46e5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Quiz Styles -->
+  <link rel="stylesheet" href="css/quiz.css" />
+</head>
+<body class="bg-game-dark bg-game-glow text-white min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto w-full p-4 md:p-6 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i data-lucide="gamepad-2" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-black tracking-tight">QUIZ LIVE SHOW</h1>
+        <p class="text-[11px] text-indigo-300 font-medium">Multiplayer Real-time Quiz Hub</p>
+      </div>
+    </div>
+
+    <a href="../index.html" class="px-4 py-2 text-xs font-semibold rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition flex items-center gap-1.5">
+      <i data-lucide="home" class="w-4 h-4"></i>
+      <span>Về Personal Hub</span>
+    </a>
+  </header>
+
+  <!-- Hero & Dual Entry Cards -->
+  <main class="max-w-5xl mx-auto w-full p-4 my-auto space-y-12">
+    
+    <!-- Title & Description -->
+    <div class="text-center space-y-4 max-w-2xl mx-auto">
+      <span class="px-4 py-1.5 rounded-full text-xs font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 inline-flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        Công nghệ WebRTC P2P Real-time
+      </span>
+      <h2 class="text-3xl md:text-5xl font-black tracking-tight leading-tight">
+        Đấu Trí Trực Tuyến & <br class="hidden sm:inline" />
+        <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-pink-400 to-amber-300">
+          Tương Tác Thời Gian Thực
+        </span>
+      </h2>
+      <p class="text-sm md:text-base text-slate-400 leading-relaxed">
+        Quét mã QR để tham gia tức thì, thi đấu cùng nhiều người, cập nhật kết quả và biểu đồ lựa chọn của người chơi ngay trong lúc thời gian đang đếm ngược!
+      </p>
+    </div>
+
+    <!-- 2 Choice Cards: Host vs Player -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      
+      <!-- Card 1: Host / Máy chiếu -->
+      <div class="glass-panel p-8 rounded-3xl flex flex-col justify-between space-y-6 hover:border-indigo-500/50 hover:scale-[1.02] transition duration-200 group">
+        <div class="space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center text-indigo-300 group-hover:scale-110 transition">
+            <i data-lucide="projector" class="w-7 h-7"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider">Dành cho Quản trò / Máy chiếu</span>
+            <h3 class="text-2xl font-black text-white mt-1">Tạo Phòng & Trình Chiếu</h3>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Chọn bộ câu hỏi có sẵn hoặc tự tạo, tự động sinh mã QR + PIN cho người chơi tham gia, hiển thị biểu đồ phân bổ đáp án trực tiếp và bục trao giải vinh danh.
+          </p>
+        </div>
+
+        <a href="host.html" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-center rounded-2xl shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2 transition">
+          <i data-lucide="play" class="w-5 h-5 fill-white"></i>
+          <span>Mở Màn Hình Quản Trò (Host)</span>
+        </a>
+      </div>
+
+      <!-- Card 2: Player / Mobile -->
+      <div class="glass-panel p-8 rounded-3xl flex flex-col justify-between space-y-6 hover:border-pink-500/50 hover:scale-[1.02] transition duration-200 group">
+        <div class="space-y-4">
+          <div class="w-14 h-14 rounded-2xl bg-pink-600/30 border border-pink-400/40 flex items-center justify-center text-pink-300 group-hover:scale-110 transition">
+            <i data-lucide="smartphone" class="w-7 h-7"></i>
+          </div>
+          <div>
+            <span class="text-xs font-bold text-pink-400 uppercase tracking-wider">Dành cho Người chơi</span>
+            <h3 class="text-2xl font-black text-white mt-1">Tham Gia Bằng Mã PIN</h3>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Nhập 6 số PIN của phòng đã được Quản trò cung cấp, chọn biệt danh và avatar để vào sàn đấu phản xạ 4 nút bấm đa màu sắc.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <div class="flex gap-2">
+            <input 
+              type="number" 
+              id="quick-pin" 
+              placeholder="Nhập PIN (Ví dụ: 839210)" 
+              class="flex-1 px-4 py-3 bg-slate-900 border border-slate-700 rounded-2xl text-center text-sm font-bold text-pink-300 font-mono focus:outline-hidden focus:border-pink-500" />
+            <button 
+              onclick="enterRoom()" 
+              class="px-5 py-3 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-black rounded-2xl text-sm shadow-xl shadow-pink-600/30 flex items-center gap-1.5 transition">
+              <span>Vào</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-500 text-center">Hoặc quét trực tiếp mã QR trên màn hình máy chiếu để không cần nhập PIN.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Feature Highlights -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
+      <div class="glass-card p-5 rounded-2xl space-y-2">
+        <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+          <i data-lucide="qr-code" class="w-5 h-5"></i>
+        </div>
+        <h4 class="text-sm font-bold text-white">Quét QR Tham Gia</h4>
+        <p class="text-xs text-slate-400">Người chơi chỉ cần mở camera điện thoại quét mã QR để vào thẳng sảnh chờ.</p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl space-y-2">
+        <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+          <i data-lucide="activity" class="w-5 h-5"></i>
+        </div>
+        <h4 class="text-sm font-bold text-white">Lựa Chọn Trực Tiếp</h4>
+        <p class="text-xs text-slate-400">Hiển thị biểu đồ phân bổ đáp án người chơi đang chọn ngay khi đồng hồ đang đếm ngược.</p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl space-y-2">
+        <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+          <i data-lucide="zap" class="w-5 h-5"></i>
+        </div>
+        <h4 class="text-sm font-bold text-white">Độ Trễ Cực Thấp</h4>
+        <p class="text-xs text-slate-400">WebRTC P2P DataChannel truyền nhận dữ liệu trực tiếp trong vài mili-giây.</p>
+      </div>
+
+      <div class="glass-card p-5 rounded-2xl space-y-2">
+        <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+          <i data-lucide="trophy" class="w-5 h-5"></i>
+        </div>
+        <h4 class="text-sm font-bold text-white">Bục Vinh Danh & Pháo Hoa</h4>
+        <p class="text-xs text-slate-400">Xếp hạng tốc độ và độ chính xác, bục nhận giải Top 3 kèm hiệu ứng âm thanh sống động.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="max-w-6xl mx-auto w-full p-4 text-center text-xs text-slate-500">
+    Personal Hub - Live Multiplayer Quiz Platform • Được xây dựng cho trải nghiệm Game Show trực tuyến đỉnh cao.
+  </footer>
+
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    function enterRoom() {
+      const pin = document.getElementById("quick-pin").value.trim();
+      if (pin) {
+        window.location.href = `player.html?pin=${pin}`;
+      } else {
+        window.location.href = `player.html`;
+      }
+    }
+
+    document.getElementById("quick-pin")?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") enterRoom();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Công Cụ Tạo Google Form Tự Động - Hồ Sơ Năng Lực Nhân Sự</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Be Vietnam Pro', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+  <!-- Header Top Bar -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+          <i data-lucide="form-input" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-white leading-tight">Trình Tạo Google Form Nhân Sự</h1>
+          <p class="text-xs text-slate-400">Tự động hóa 100% hồ sơ năng lực nhân sự theo mẫu</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="https://script.new" target="_blank" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-600/30 transition transform hover:-translate-y-0.5">
+          <i data-lucide="external-link" class="w-4 h-4"></i>
+          <span>Mở Google Apps Script (script.new)</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    
+    <!-- Hero / Quick Steps Guide -->
+    <div class="bg-gradient-to-br from-indigo-950/60 via-slate-900 to-slate-900 border border-indigo-500/30 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-2xl">
+      <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      
+      <div class="max-w-3xl space-y-4">
+        <span class="px-3 py-1 bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold rounded-full inline-block">
+          ⚡ TẠO TỰ ĐỘNG CHỈ VỚI 3 BƯỚC (30 GIÂY)
+        </span>
+        <h2 class="text-2xl md:text-3xl font-extrabold text-white leading-snug">
+          Khởi tạo biểu mẫu Google Form cho tài khoản Google của bạn
+        </h2>
+        <p class="text-sm text-slate-300 leading-relaxed">
+          Google Form cần được tạo trực tiếp trên Google Drive của bạn để toàn bộ dữ liệu phản hồi được bảo mật và lưu vào trang tính Google Sheets của bạn. Đoạn mã dưới đây sẽ tự động tạo trọn vẹn biểu mẫu chỉ sau 1 lần bấm <b>Run</b>.
+        </p>
+
+        <!-- 3 Step Flow -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 space-y-2">
+            <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">1</div>
+            <h3 class="text-sm font-semibold text-white">Sao chép mã tạo Form</h3>
+            <p class="text-xs text-slate-400">Bấm nút "Copy Mã Script" bên dưới để sao chép toàn bộ mã Apps Script vào bộ nhớ tạm.</p>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 space-y-2">
+            <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">2</div>
+            <h3 class="text-sm font-semibold text-white">Mở script.new & Dán mã</h3>
+            <p class="text-xs text-slate-400">Bấm nút mở <b>script.new</b>, dán mã vào trình soạn thảo rồi bấm <b>Ctrl + S</b> để lưu.</p>
+          </div>
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 space-y-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-600 text-white font-bold text-xs flex items-center justify-center">3</div>
+            <h3 class="text-sm font-semibold text-white">Bấm "Run" (Chạy)</h3>
+            <p class="text-xs text-slate-400">Bấm Run và cấp quyền. Google Form hoàn chỉnh sẽ xuất hiện ngay trong Google Drive của bạn!</p>
+          </div>
+        </div>
+
+        <div class="pt-4 flex flex-wrap items-center gap-3">
+          <button id="copyScriptBtn" onclick="copyCode()" class="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/30 transition transform hover:-translate-y-0.5">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span id="copyBtnText">Sao Chép Toàn Bộ Mã Google Apps Script</span>
+          </button>
+          <a href="https://script.new" target="_blank" class="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5">
+            <i data-lucide="play-circle" class="w-4 h-4"></i>
+            <span>Mở Trang Tạo Script (script.new)</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Code Preview Box -->
+    <div class="bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div class="bg-slate-900/90 px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="code" class="w-4 h-4 text-indigo-400"></i>
+          <span class="text-xs font-mono font-semibold text-slate-200">create_personnel_google_form.gs</span>
+        </div>
+        <button onclick="copyCode()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1.5">
+          <i data-lucide="clipboard" class="w-3.5 h-3.5"></i>
+          <span>Copy mã</span>
+        </button>
+      </div>
+      <pre class="p-4 text-xs font-mono text-slate-300 overflow-x-auto max-h-80 leading-relaxed bg-slate-950/60" id="codeBlock"><code>function createMergedPersonnelProfileForm() {
+  const formTitle = 'PHIẾU THU THẬP & CẬP NHẬT HỒ SƠ NĂNG LỰC CÁ NHÂN';
+  const formDescription = 'Biểu mẫu thu thập, cập nhật thông tin cá nhân, trình độ đào tạo, chứng chỉ hành nghề, kỹ năng chuyên môn và nhu cầu đào tạo phục vụ công tác quản lý nhân sự & hồ sơ năng lực công ty.\n\n* Vui lòng điền đầy đủ thông tin vào các mục bên dưới.';
+  
+  const form = FormApp.create(formTitle);
+  form.setDescription(formDescription);
+  form.setAllowResponseEdits(true);
+  form.setCollectEmail(true);
+
+  // ==========================================
+  // PHẦN 1: THÔNG TIN QUẢN TRỊ HỒ SƠ (TIÊU ĐỀ MỤC)
+  // ==========================================
+  const h1 = form.addSectionHeaderItem();
+  h1.setTitle('📋 PHẦN 1: THÔNG TIN QUẢN TRỊ HỒ SƠ')
+    .setHelpText('Thông tin mã số và quản lý hồ sơ theo dõi');
+
+  form.addTextItem().setTitle('Mã số hồ sơ').setHelpText('Ví dụ: T27-01').setRequired(true);
+  form.addTextItem().setTitle('Số lần cập nhật (Số nhập)').setHelpText('Ví dụ: 1, 2, 5...').setRequired(false);
+  form.addDateItem().setTitle('Ngày cập nhật thông tin').setRequired(true);
+  form.addScaleItem().setTitle('Mức độ đánh giá / Xếp hạng hiện tại').setBounds(1, 10).setLabels('Cần cải thiện', 'Xuất sắc (10★)').setRequired(false);
+
+  // ==========================================
+  // PHẦN 2: MỤC A - THÔNG TIN CÁ NHÂN (TIÊU ĐỀ MỤC)
+  // ==========================================
+  const h2 = form.addSectionHeaderItem();
+  h2.setTitle('👤 MỤC A: THÔNG TIN CÁ NHÂN & QUÁ TRÌNH CÔNG TÁC')
+    .setHelpText('Kê khai thông tin cá nhân, văn bằng đào tạo và chứng chỉ');
+
+  form.addTextItem().setTitle('Họ và tên').setHelpText('Ví dụ: ĐỖ VĂN PHONG (Viết hoa đầy đủ)').setRequired(true);
+  form.addDateItem().setTitle('Ngày sinh').setHelpText('Định dạng: Ngày/Tháng/Năm (Ví dụ: 10/05/1978)').setRequired(true);
+  form.addTextItem().setTitle('Số Căn cước công dân (CCCD / CMND)').setHelpText('Nhập đúng 12 chữ số CCCD (Ví dụ: 052078000567)').setRequired(true);
+  form.addTextItem().setTitle('Địa chỉ Email cá nhân / công việc').setHelpText('Ví dụ: Phongt27nt@gmail.com').setRequired(true);
+  form.addTextItem().setTitle('Số điện thoại liên hệ & Zalo').setHelpText('Ví dụ: 0913431515; Zalo: 0913431515; 0988112277').setRequired(true);
+  form.addParagraphTextItem().setTitle('Chỗ ở hiện tại / Địa chỉ liên hệ').setHelpText('Ví dụ: 38A Lý Tự Trọng, phường Nha Trang, tỉnh Khánh Hòa').setRequired(true);
+  form.addTextItem().setTitle('Chức vụ hiện tại').setHelpText('Ví dụ: Chủ tịch HĐQT / Tổng giám đốc / Trưởng phòng / Kỹ sư...').setRequired(true);
+  form.addTextItem().setTitle('Số năm công tác tại công ty').setHelpText('Ví dụ: 19 năm 10 tháng').setRequired(true);
+  form.addParagraphTextItem().setTitle('Trình độ được đào tạo (Văn bằng, Trường, Chuyên ngành, Năm tốt nghiệp)').setHelpText('Ghi rõ từng văn bằng, số hiệu bằng, ngày cấp.\nVí dụ:\n- Kỹ Sư Giao thông cấp bằng số B139107, ngày 16/10/2000\n- Kỹ Sư đường sắt tốc độ cao, thạc sỹ kỹ thuật cấp bằng số DND.7.7.0013061, ngày 12/11/2018').setRequired(true);
+  form.addParagraphTextItem().setTitle('Chứng chỉ hành nghề hoạt động xây dựng / chuyên ngành').setHelpText('Ghi rõ lĩnh vực, hạng cấp, số chứng chỉ, ngày cấp và ngày hết hạn.\nVí dụ:\n- Thiết kế công trình cầu, hầm, đường bộ: Cấp I\n- Tư vấn giám sát công trình giao thông: Cấp I\n- Kỹ Sư định giá: Cấp I\n- Số chứng chỉ: BXD-00020412 | Ngày hết hạn: 05/05/2028').setRequired(false);
+  form.addParagraphTextItem().setTitle('Bằng khen, Khen thưởng & Thành tích đạt được').setHelpText('Ghi rõ các bằng khen, cấp khen thưởng và năm nhận.\nVí dụ: Liên hiệp hội năm 2020, Hội KHKT Cầu đường Việt Nam năm 2020; UBND tỉnh khen năm 2021...').setRequired(false);
+
+  // ==========================================
+  // PHẦN 3: MỤC B, C & D - KỸ NĂNG & ĐÀO TẠO (TIÊU ĐỀ MỤC)
+  // ==========================================
+  const h3 = form.addSectionHeaderItem();
+  h3.setTitle('💡 MỤC B, C & D: NĂNG LỰC CHUYÊN MÔN & NHU CẦU ĐÀO TẠO')
+    .setHelpText('Kỹ năng làm chủ, phần mềm sử dụng và mong muốn bồi dưỡng');
+
+  form.addCheckboxItem().setTitle('B. Khả năng chuyên môn sử dụng THUẦN THỤC').setChoiceValues([
+    'Chủ nhiệm Dự án (giao thông: ĐƯỜNG, CẦU, HẦM)',
+    'Sử dụng AI trong viết báo cáo (ChatGPT, Gemini, Claude...)',
+    'Tin học văn phòng nâng cao (Word, Excel, PowerPoint, Canva)',
+    'Quản lý điều hành dự án & Hồ sơ pháp lý xây dựng',
+    'Thẩm định thiết kế & Dự toán công trình'
+  ]).showOtherOption(true).setRequired(false);
+
+  form.addCheckboxItem().setTitle('C. Khả năng BIẾT CƠ BẢN (Phần mềm & Kỹ thuật)').setChoiceValues([
+    'Autodesk Revit',
+    'Midas Civil / Midas GTS NX',
+    'AutoCAD 2D/3D',
+    'Civil 3D',
+    'SAP2000 / ETABS'
+  ]).showOtherOption(true).setRequired(false);
+
+  form.addCheckboxItem().setTitle('D. Nhu cầu CẦN ĐÀO TẠO / NÂNG CAO KỸ NĂNG').setChoiceValues([
+    'Lập trình tự động hóa Python & Phân tích dữ liệu',
+    'Ứng dụng AI nâng cao (Claude AI, Prompt Engineering, Tự động hóa quy trình)',
+    'BIM nâng cao (Revit Structure, BIM Coordinator)',
+    'Midas nâng cao & Tính toán kết cấu phức tạp',
+    'Kỹ năng quản trị & Đấu thầu quốc tế FIDIC'
+  ]).showOtherOption(true).setRequired(false);
+
+  // ==========================================
+  // PHẦN 4: MỤC E - KIẾN NGHỊ & ĐỀ XUẤT (TIÊU ĐỀ MỤC)
+  // ==========================================
+  const h4 = form.addSectionHeaderItem();
+  h4.setTitle('📝 MỤC E: KIẾN NGHỊ & ĐỀ XUẤT')
+    .setHelpText('Ý kiến đóng góp ý kiến về môi trường làm việc, trao đổi học thuật, quy trình công việc');
+
+  form.addParagraphTextItem().setTitle('E. Ý kiến đóng góp & Kiến nghị khác').setHelpText('Ví dụ:\n(1) Cần trao đổi học tập 1 tuần / 1 lần các kiến thức mới.\n(2) Hồ sơ cá nhân thiết kế phải in giấy và trình chủ nhiệm xem trước khi xuất.').setRequired(false);
+
+  form.setConfirmationMessage('Cảm ơn bạn đã gửi thông tin cập nhật hồ sơ năng lực cá nhân. Dữ liệu đã được ghi nhận vào hệ thống quản lý.');
+
+  Logger.log('=== RESULT URLS ===');
+  Logger.log('PUBLISHED_URL: ' + form.getPublishedUrl());
+  Logger.log('EDIT_URL: ' + form.getEditUrl());
+}</code></pre>
+    </div>
+
+    <!-- Live Interactive Preview Form & QR Code Generator -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      
+      <!-- Interactive Form Container -->
+      <div class="lg:col-span-2 bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
+        <div class="border-b border-slate-700 pb-4">
+          <span class="text-xs font-bold text-indigo-400 tracking-wider uppercase">Bản xem trước giao diện nhập liệu</span>
+          <h3 class="text-xl font-bold text-white">Phiếu Thu Thập & Cập Nhật Hồ Sơ Năng Lực</h3>
+          <p class="text-xs text-slate-400 mt-1">Dữ liệu nhập tại đây có thể xuất ra file JSON / Excel hoặc tạo mã QR tức thì</p>
+        </div>
+
+        <form id="profileForm" onsubmit="event.preventDefault(); generateQRFromForm();" class="space-y-6">
+          
+          <!-- Section 1 -->
+          <div class="space-y-4">
+            <h4 class="text-sm font-bold text-indigo-300 flex items-center gap-2">
+              <i data-lucide="tag" class="w-4 h-4"></i> Thông tin quản trị
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Mã số hồ sơ *</label>
+                <input type="text" id="inp_maHoSo" value="T27-01" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Số nhập</label>
+                <input type="number" id="inp_soNhap" value="5" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Ngày cập nhật *</label>
+                <input type="date" id="inp_ngayCapNhat" value="2026-08-22" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Personal info -->
+          <div class="space-y-4 pt-4 border-t border-slate-700/60">
+            <h4 class="text-sm font-bold text-indigo-300 flex items-center gap-2">
+              <i data-lucide="user" class="w-4 h-4"></i> A. Thông tin cá nhân
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Họ và tên *</label>
+                <input type="text" id="inp_hoTen" value="ĐỖ VĂN PHONG" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-semibold focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Ngày sinh *</label>
+                <input type="date" id="inp_ngaySinh" value="1978-05-10" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Số Căn cước công dân (CCCD) *</label>
+                <input type="text" id="inp_cccd" value="052078000567" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Email *</label>
+                <input type="email" id="inp_email" value="Phongt27nt@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Điện thoại & Zalo *</label>
+                <input type="text" id="inp_sdt" value="0913431515; Zalo: 0913431515; 0988112277" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div>
+                <label class="block font-medium text-slate-300 mb-1">Chức vụ hiện tại *</label>
+                <input type="text" id="inp_chucVu" value="Chủ tịch HĐQT/ Tổng giám đốc" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block font-medium text-slate-300 mb-1">Chỗ ở hiện tại *</label>
+                <input type="text" id="inp_diaChi" value="38A Lý Tự Trọng, phường Nha Trang, tỉnh Khánh Hòa" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block font-medium text-slate-300 mb-1">Trình độ được đào tạo *</label>
+                <textarea id="inp_trinhDo" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">Kỹ Sư Giao thông cấp bằng số B139107, ngày 16/10/2000 ; Kỹ Sư đường sắt tốc độ cao, thạc sỹ kỹ thuật cấp bằng số DND.7.7.0013061, ngày 12/11/2018</textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block font-medium text-slate-300 mb-1">Chứng chỉ hành nghề</label>
+                <textarea id="inp_chungChi" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-indigo-500">Thiết kế công trình cầu, hầm, đường bộ: Cấp I; Tư vấn giám sát công trình giao thông: Cấp I; Kỹ Sư định giá: cấp I; Số: BXD-00020412, ngày hết hạn: 05/05/2028</textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 pt-2">
+            <button type="button" onclick="generateQRFromForm()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2">
+              <i data-lucide="qr-code" class="w-4 h-4"></i>
+              <span>Cập Nhật Mã QR Tức Thì</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Live QR Code Card -->
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-3xl p-6 md:p-8 flex flex-col items-center justify-center text-center space-y-4 shadow-xl">
+        <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">MÃ QR HỒ SƠ TỰ ĐỘNG</span>
+        <div class="p-4 bg-white rounded-2xl shadow-xl border-4 border-indigo-500/20 flex items-center justify-center">
+          <canvas id="qrCanvas"></canvas>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-white" id="qrLabelName">ĐỖ VĂN PHONG</h4>
+          <p class="text-xs text-slate-400 font-mono" id="qrLabelCode">Mã hồ sơ: T27-01</p>
+        </div>
+        <p class="text-[11px] text-slate-400 max-w-xs leading-relaxed">
+          Quét mã QR này bằng Camera điện thoại hoặc Zalo để xem ngay thông tin hồ sơ nhân sự.
+        </p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    lucide.createIcons();
+
+    function copyCode() {
+      const code = document.getElementById('codeBlock').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const btnText = document.getElementById('copyBtnText');
+        btnText.innerText = '✅ Đã Sao Chép Vào Clipboard!';
+        setTimeout(() => {
+          btnText.innerText = 'Sao Chép Toàn Bộ Mã Google Apps Script';
+        }, 3000);
+      });
+    }
+
+    function generateQRFromForm() {
+      const maHoSo = document.getElementById('inp_maHoSo').value || 'T27-01';
+      const hoTen = document.getElementById('inp_hoTen').value || 'ĐỖ VĂN PHONG';
+      const liveFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSdYmn2mnRH-qn7cHFzcasScn_PYB7AYnYJhch0pJyt8IvtFZw/viewform";
+      
+      document.getElementById('qrLabelName').innerText = hoTen;
+      document.getElementById('qrLabelCode').innerText = 'Mã hồ sơ: ' + maHoSo;
+
+      // QR Data Link
+      const qrData = liveFormUrl;
+
+      const canvas = document.getElementById('qrCanvas');
+      QRCode.toCanvas(canvas, qrData, {
+        width: 200,
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      }, function (error) {
+        if (error) console.error(error);
+      });
+    }
+
+    // Init QR on load
+    window.addEventListener('DOMContentLoaded', () => {
+      generateQRFromForm();
+    });
+  </script>
+</body>
+</html>
