@@ -53,6 +53,12 @@ class BoatHostGame {
       window.addEventListener("resize", () => this._resizeCanvas());
     }
 
+    // Tự động thêm 2 bot mẫu nếu phòng trống để người xem thấy ngay thuyền trên làn nước
+    if (this.players.size === 0) {
+      this.addBot();
+      this.addBot();
+    }
+
     // Khởi tạo mạng Host
     this.network.initHost(this.pin);
     this._setupNetworkEvents();
@@ -74,18 +80,24 @@ class BoatHostGame {
   _resizeCanvas() {
     if (!this.canvas) return;
     const container = this.canvas.parentElement;
-    if (container) {
-      this.canvas.width = container.clientWidth;
-      this.canvas.height = Math.max(container.clientHeight, 420);
-    }
+    const dpr = window.devicePixelRatio || 1;
+    const rect = container ? container.getBoundingClientRect() : { width: window.innerWidth, height: 450 };
+
+    const displayWidth = Math.max(rect.width || window.innerWidth - 40, 600);
+    const displayHeight = Math.max(rect.height || 420, 380);
+
+    this.canvas.width = displayWidth;
+    this.canvas.height = displayHeight;
   }
 
   _generateQrCode() {
     const qrContainer = document.getElementById("qr-code-container");
     const pinText = document.getElementById("room-pin-display");
+    const pinLobby = document.getElementById("room-pin-display-lobby");
     const urlText = document.getElementById("room-url-display");
 
     if (pinText) pinText.innerText = this.pin;
+    if (pinLobby) pinLobby.innerText = this.pin;
 
     // Xác định URL người chơi
     let playerUrl = "";
@@ -103,8 +115,8 @@ class BoatHostGame {
       qrContainer.innerHTML = "";
       new QRCode(qrContainer, {
         text: playerUrl,
-        width: 170,
-        height: 170,
+        width: 160,
+        height: 160,
         colorDark: "#0f172a",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.M
@@ -320,15 +332,16 @@ class BoatHostGame {
     });
     this.leaderboard = [];
 
-    // Ẩn Lobby, hiện màn hình Đua
-    document.getElementById("lobby-overlay").classList.add("hidden");
-    document.getElementById("race-screen").classList.remove("hidden");
-    document.getElementById("victory-modal").classList.add("hidden");
+    // Ẩn Lobby, hiện màn hình Đua và HUD
+    document.getElementById("lobby-overlay")?.classList.add("hidden");
+    document.getElementById("race-top-hud")?.classList.remove("hidden");
+    document.getElementById("victory-modal")?.classList.add("hidden");
+    this._resizeCanvas();
 
     const countOverlay = document.getElementById("countdown-overlay");
     const countNumber = document.getElementById("countdown-number");
-    countOverlay.classList.remove("hidden");
-    countNumber.innerText = "3";
+    if (countOverlay) countOverlay.classList.remove("hidden");
+    if (countNumber) countNumber.innerText = "3";
     this.audio.playCountdownBeep(false);
 
     // Báo cho điện thoại
@@ -341,21 +354,23 @@ class BoatHostGame {
     this.countdownTimer = setInterval(() => {
       this.countdownValue--;
       if (this.countdownValue > 0) {
-        countNumber.innerText = this.countdownValue.toString();
+        if (countNumber) countNumber.innerText = this.countdownValue.toString();
         this.audio.playCountdownBeep(false);
         this.network.sendToAllPlayers({
           type: "COUNTDOWN_TICK",
           countdown: this.countdownValue
         });
       } else if (this.countdownValue === 0) {
-        countNumber.innerText = "XUẤT PHÁT!";
-        countNumber.classList.add("text-amber-400", "scale-110");
+        if (countNumber) {
+          countNumber.innerText = "XUẤT PHÁT!";
+          countNumber.classList.add("text-amber-400", "scale-110");
+        }
         this.audio.playCountdownBeep(true);
         this.network.sendToAllPlayers({ type: "RACE_START" });
       } else {
         clearInterval(this.countdownTimer);
-        countOverlay.classList.add("hidden");
-        countNumber.classList.remove("text-amber-400", "scale-110");
+        if (countOverlay) countOverlay.classList.add("hidden");
+        if (countNumber) countNumber.classList.remove("text-amber-400", "scale-110");
         this._startRace();
       }
     }, 1000);
@@ -651,9 +666,10 @@ class BoatHostGame {
 
   resetToLobby() {
     this.state = "LOBBY";
-    document.getElementById("victory-modal").classList.add("hidden");
-    document.getElementById("race-screen").classList.add("hidden");
-    document.getElementById("lobby-overlay").classList.remove("hidden");
+    document.getElementById("victory-modal")?.classList.add("hidden");
+    document.getElementById("race-top-hud")?.classList.add("hidden");
+    document.getElementById("lobby-overlay")?.classList.remove("hidden");
+    this._resizeCanvas();
     this._updateLobbyUI();
 
     this.network.sendToAllPlayers({ type: "BACK_TO_LOBBY" });
@@ -664,50 +680,50 @@ class BoatHostGame {
   // ==========================================
   _renderCanvas() {
     if (!this.ctx || !this.canvas) return;
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+    if (this.canvas.width <= 0 || this.canvas.height <= 0) {
+      this._resizeCanvas();
+    }
+    const w = Math.max(this.canvas.width, 600);
+    const h = Math.max(this.canvas.height, 380);
     const ctx = this.ctx;
 
     // Xóa khung hình
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Tính toán Camera X (Bám theo nhóm dẫn đầu hoặc góc nhìn rộng)
-    const sorted = Array.from(this.players.values()).sort((a, b) => b.x - a.x);
-    const leaderX = sorted[0] ? sorted[0].x : 0;
-
     // Đổi mét sang Pixel trên màn hình
-    const trackWidthPixels = w - 180; // Trừ khoảng lề xuất phát & đích
-    const scale = trackWidthPixels / this.targetDistance;
+    const startX = 90;
+    const trackWidthPixels = w - 200; // Trừ khoảng lề xuất phát & đích
+    const scale = Math.max(0.5, trackWidthPixels / this.targetDistance);
 
-    // 2. Vẽ Nền Dòng Sông (River Gradient & Waves)
+    // 1. Vẽ Nền Dòng Sông (River Gradient & Dynamic Waves)
     const riverGrad = ctx.createLinearGradient(0, 0, 0, h);
-    riverGrad.addColorStop(0, "#083344"); // Xanh thẫm đầu bờ
-    riverGrad.addColorStop(0.5, "#0e7490"); // Xanh ngọc sông
-    riverGrad.addColorStop(1, "#083344"); // Xanh thẫm bờ dưới
+    riverGrad.addColorStop(0, "#083344"); // Bờ trên xanh thẫm
+    riverGrad.addColorStop(0.5, "#0891b2"); // Lòng sông xanh ngọc bích
+    riverGrad.addColorStop(1, "#083344"); // Bờ dưới xanh thẫm
     ctx.fillStyle = riverGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Hiệu ứng sóng nước lấp lánh (Water ripples)
+    // Hiệu ứng dòng nước chảy & sóng lăn tăn
     this.waterOffset += 0.8;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
-    ctx.lineWidth = 1.5;
-    for (let waveY = 20; waveY < h; waveY += 35) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    ctx.lineWidth = 1.8;
+    for (let waveY = 15; waveY < h; waveY += 30) {
       ctx.beginPath();
-      for (let waveX = 0; waveX < w; waveX += 20) {
-        const sine = Math.sin((waveX + this.waterOffset * 20) * 0.03 + waveY * 0.1) * 3;
+      for (let waveX = 0; waveX < w; waveX += 25) {
+        const sine = Math.sin((waveX + this.waterOffset * 25) * 0.02 + waveY * 0.1) * 3.5;
         if (waveX === 0) ctx.moveTo(waveX, waveY + sine);
         else ctx.lineTo(waveX, waveY + sine);
       }
       ctx.stroke();
     }
 
-    // 3. Phân chia Làn đua phương ngang (Lanes)
+    // 2. Phân chia Làn đua phương ngang (Lanes)
     const totalLanes = Math.max(1, this.players.size);
     const laneHeight = h / totalLanes;
 
-    ctx.setLineDash([8, 8]);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
-    ctx.lineWidth = 1;
+    ctx.setLineDash([10, 10]);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.22)";
+    ctx.lineWidth = 1.5;
     for (let i = 1; i < totalLanes; i++) {
       const ly = i * laneHeight;
       ctx.beginPath();
@@ -717,45 +733,44 @@ class BoatHostGame {
     }
     ctx.setLineDash([]);
 
-    // 4. Vạch Xuất Phát (Start Line - X = 80px)
-    const startX = 80;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-    ctx.fillRect(startX, 0, 4, h);
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "bold 11px sans-serif";
-    ctx.fillText("XUẤT PHÁT", startX - 25, 18);
+    // 3. Vạch Xuất Phát (Start Line - X = 90px)
+    ctx.fillStyle = "rgba(56, 189, 248, 0.6)";
+    ctx.fillRect(startX, 0, 5, h);
+    ctx.fillStyle = "#38bdf8";
+    ctx.font = "bold 12px sans-serif";
+    ctx.fillText("XUẤT PHÁT (0m)", startX - 45, 20);
 
-    // 5. Cột mốc cự ly (Distance markers: 100m, 200m, 300m...)
+    // 4. Cột mốc cự ly phương ngang (100m, 200m, 300m, 400m...)
     const markerStep = this.targetDistance <= 500 ? 100 : 250;
     for (let dist = markerStep; dist < this.targetDistance; dist += markerStep) {
       const mx = startX + dist * scale;
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(mx, 0);
       ctx.lineTo(mx, h);
       ctx.stroke();
 
-      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-      ctx.font = "10px monospace";
-      ctx.fillText(`${dist}m`, mx - 10, h - 8);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.font = "bold 11px monospace";
+      ctx.fillText(`${dist}m`, mx - 12, h - 10);
     }
 
-    // 6. Vạch Đích (Finish Line - Caro Cờ Đua)
+    // 5. Vạch Đích (Finish Line - Caro Cờ Đua)
     const finishX = startX + this.targetDistance * scale;
-    this._renderFinishLine(ctx, finishX, 0, 16, h);
+    this._renderFinishLine(ctx, finishX, 0, 18, h);
 
-    // 7. Vẽ Hạt hiệu ứng bọt nước (Particles)
+    // 6. Vẽ Hạt hiệu ứng bọt nước (Particles)
     this.particles.forEach((p) => {
       ctx.fillStyle = p.color;
-      ctx.globalAlpha = p.alpha;
+      ctx.globalAlpha = Math.max(0, p.alpha);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, Math.max(0.5, p.size), 0, Math.PI * 2);
       ctx.fill();
     });
     ctx.globalAlpha = 1.0;
 
-    // 8. Vẽ Từng Chiếc Thuyền Theo Làn
+    // 7. Vẽ Từng Chiếc Thuyền Theo Làn Phương Ngang
     this.players.forEach((boat) => {
       boat.y = boat.lane * laneHeight + laneHeight / 2;
       const screenX = startX + boat.x * scale;
@@ -765,7 +780,7 @@ class BoatHostGame {
   }
 
   _renderFinishLine(ctx, x, y, width, height) {
-    const squareSize = 8;
+    const squareSize = 9;
     const rows = Math.ceil(height / squareSize);
     const cols = Math.ceil(width / squareSize);
 
@@ -778,99 +793,104 @@ class BoatHostGame {
 
     // Biển ĐÍCH
     ctx.fillStyle = "#ef4444";
-    ctx.fillRect(x - 10, 0, 36, 20);
+    ctx.beginPath();
+    ctx.roundRect(x - 8, 4, 38, 22, 6);
+    ctx.fill();
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 11px sans-serif";
-    ctx.fillText("ĐÍCH", x - 6, 14);
+    ctx.fillText("ĐÍCH", x - 3, 19);
   }
 
   _renderBoat(ctx, boat, x, y, laneHeight) {
     ctx.save();
-    ctx.translate(x, y);
+    
+    // Nhấp nhô nhẹ trên mặt nước khi đỗ tại chỗ
+    const bobbing = this.state === "LOBBY" ? Math.sin(Date.now() * 0.004 + boat.lane) * 2.5 : 0;
+    ctx.translate(x, y + bobbing);
 
-    // Hiệu ứng bọt rẽ sóng 2 bên mũi thuyền
-    if (boat.speed > 0.5) {
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
-      ctx.lineWidth = 1.5;
+    // Vệt rẽ sóng trắng 2 bên mũi thuyền khi lướt đi
+    if (boat.speed > 0.3) {
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(15, 0);
-      ctx.lineTo(-25, -12);
-      ctx.moveTo(15, 0);
-      ctx.lineTo(-25, 12);
+      ctx.moveTo(25, 0);
+      ctx.lineTo(-35, -16);
+      ctx.moveTo(25, 0);
+      ctx.lineTo(-35, 16);
       ctx.stroke();
     }
 
-    // 1. Thân Thuyền (Boat Hull - Kiểu dáng Thuyền Rồng / Ca-nô thể thao)
+    // 1. Thân Thuyền Rồng / Ca-nô Thể Thao (Dài & Rõ Ràng Theo Chiều Ngang)
     ctx.fillStyle = boat.color;
     ctx.beginPath();
-    // Mũi thuyền nhọn bên phải (hướng phương ngang sang phải)
-    ctx.moveTo(25, 0);
-    ctx.quadraticCurveTo(10, -11, -30, -9);
-    ctx.lineTo(-35, 0);
-    ctx.lineTo(-30, 9);
-    ctx.quadraticCurveTo(10, 11, 25, 0);
+    // Mũi nhọn sang phải (hướng đích)
+    ctx.moveTo(35, 0);
+    ctx.quadraticCurveTo(15, -14, -40, -11);
+    ctx.lineTo(-48, 0);
+    ctx.lineTo(-40, 11);
+    ctx.quadraticCurveTo(15, 14, 35, 0);
     ctx.closePath();
     ctx.fill();
 
-    // Viền mép thuyền
+    // Viền kim loại nổi bật
     ctx.strokeStyle = boat.secondaryColor || "#ffffff";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.stroke();
 
     // Lòng thuyền
-    ctx.fillStyle = "rgba(15, 23, 42, 0.4)";
+    ctx.fillStyle = "rgba(15, 23, 42, 0.6)";
     ctx.beginPath();
-    ctx.ellipse(-8, 0, 18, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(-10, 0, 24, 7, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // 2. Mái Chèo Trái & Phải (Animated Oars)
-    const oarLen = 22;
+    // 2. Mái Chèo Trái & Phải Hoạt Họa (Swinging Oars)
+    const oarLen = 28;
 
-    // Mái chèo trên (Trái)
+    // Mái chèo TRÁI (Bên trên)
     ctx.save();
-    ctx.translate(-5, -6);
-    ctx.rotate(-0.5 + boat.oarAngleL);
+    ctx.translate(-8, -8);
+    ctx.rotate(-0.6 + boat.oarAngleL);
     ctx.fillStyle = "#d97706";
-    ctx.fillRect(-2, -oarLen, 4, oarLen);
+    ctx.fillRect(-2.5, -oarLen, 5, oarLen);
     // Lá chèo
     ctx.fillStyle = boat.color;
-    ctx.fillRect(-4, -oarLen, 8, 8);
+    ctx.fillRect(-5, -oarLen, 10, 10);
     ctx.restore();
 
-    // Mái chèo dưới (Phải)
+    // Mái chèo PHẢI (Bên dưới)
     ctx.save();
-    ctx.translate(-5, 6);
-    ctx.rotate(0.5 - boat.oarAngleR);
+    ctx.translate(-8, 8);
+    ctx.rotate(0.6 - boat.oarAngleR);
     ctx.fillStyle = "#d97706";
-    ctx.fillRect(-2, 0, 4, oarLen);
+    ctx.fillRect(-2.5, 0, 5, oarLen);
     // Lá chèo
     ctx.fillStyle = boat.color;
-    ctx.fillRect(-4, oarLen - 8, 8, 8);
+    ctx.fillRect(-5, oarLen - 10, 10, 10);
     ctx.restore();
 
-    // 3. Avatar & Tên Người Chơi
-    ctx.font = "16px sans-serif";
+    // 3. Avatar Người Chèo ở Giữa Thuyền
+    ctx.font = "20px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(boat.avatar, -8, 0);
+    ctx.fillText(boat.avatar, -10, 0);
 
-    // Tên & Thứ hạng nổi phía trên thuyền
+    // 4. Nhãn Tên & Vị Trí Nổi Phía Trên
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 11px sans-serif";
+    ctx.font = "bold 12px sans-serif";
     ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-    ctx.shadowBlur = 4;
-    ctx.fillText(boat.name, -5, -20);
+    ctx.shadowBlur = 5;
+    ctx.fillText(boat.name, -5, -24);
     ctx.shadowBlur = 0;
 
-    // Huy hiệu Combo hoặc Về đích
+    // Huy hiệu Combo hoặc Hạng về đích
     if (boat.isFinished) {
       ctx.fillStyle = "#fbbf24";
-      ctx.font = "black 12px sans-serif";
-      ctx.fillText(`🏆 HẠNG ${boat.rank}`, 35, 0);
-    } else if (boat.combo >= 5) {
+      ctx.font = "black 13px sans-serif";
+      ctx.fillText(`🏆 HẠNG ${boat.rank}`, 48, 0);
+    } else if (boat.combo >= 4) {
       ctx.fillStyle = "#38bdf8";
-      ctx.font = "bold 10px sans-serif";
-      ctx.fillText(`🔥 x${boat.combo}`, 35, 0);
+      ctx.font = "bold 11px sans-serif";
+      ctx.fillText(`🔥 x${boat.combo}`, 48, 0);
     }
 
     ctx.restore();

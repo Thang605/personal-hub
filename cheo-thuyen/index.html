@@ -84,132 +84,127 @@
     </div>
   </header>
 
-  <!-- Main Game Canvas Container -->
-  <main class="flex-1 p-4 md:p-6 flex flex-col justify-center relative overflow-hidden">
+  <!-- Main Game Container -->
+  <main class="flex-1 flex flex-col justify-between relative overflow-hidden p-3 md:p-5">
     
-    <!-- ========================================================
-         1. LOBBY VIEW (PHÒNG CHỜ & QUÉT MÃ QR)
-         ======================================================== -->
-    <div id="lobby-overlay" class="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full max-w-6xl mx-auto my-auto z-10 animate-fadeIn">
-      
-      <!-- Cột Trái: Mã QR Quét vào & Cấu hình Đua -->
-      <div class="lg:col-span-5 glass-panel p-6 rounded-3xl space-y-6 flex flex-col items-center text-center shadow-2xl">
-        <div>
-          <span class="text-xs uppercase font-extrabold tracking-widest text-cyan-400">QUÉT MÃ TRÊN ĐIỆN THOẠI ĐỂ CHƠI</span>
-          <h2 class="text-xl font-black text-white mt-1">Giơ Camera Quét Mã QR</h2>
-        </div>
-
-        <!-- Khung chứa QR Code -->
-        <div class="p-3.5 bg-white rounded-2xl shadow-xl shadow-cyan-500/20 glow-cyan">
-          <div id="qr-code-container" class="flex items-center justify-center min-w-[170px] min-h-[170px]"></div>
-        </div>
-
-        <!-- Link trực tiếp & Hướng dẫn -->
-        <div class="space-y-1 w-full">
-          <div class="text-xs text-slate-400">Hoặc truy cập trình duyệt điện thoại:</div>
-          <div id="room-url-display" class="text-[11px] font-mono text-cyan-300 bg-slate-900/90 py-1 px-3 rounded-lg border border-slate-800 break-all select-all">
-            http://localhost:8080/cheo-thuyen/player.html
-          </div>
-        </div>
-
-        <!-- Chọn Cự Ly Đua -->
-        <div class="w-full space-y-2 pt-2 border-t border-slate-700/60">
-          <div class="text-xs font-bold text-slate-300 text-left flex items-center gap-1.5">
-            <i data-lucide="flag" class="w-3.5 h-3.5 text-amber-400"></i> Chọn Cự Ly Đường Đua:
-          </div>
-          <div class="grid grid-cols-3 gap-2">
-            <button onclick="window.gameHost.setTargetDistance(300)" data-dist="300" class="distance-select-btn py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
-              300m (Ngắn)
-            </button>
-            <button onclick="window.gameHost.setTargetDistance(500)" data-dist="500" class="distance-select-btn py-2 px-3 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-indigo-500/30 transition">
-              500m (Chuẩn)
-            </button>
-            <button onclick="window.gameHost.setTargetDistance(1000)" data-dist="1000" class="distance-select-btn py-2 px-3 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
-              1000m (Dài)
-            </button>
-          </div>
-        </div>
-
-        <!-- Các Nút Hành Động: Thêm Bot & Bắt Đầu -->
-        <div class="w-full grid grid-cols-2 gap-3 pt-2">
-          <button 
-            onclick="window.gameHost.addBot()" 
-            class="py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg">
-            <i data-lucide="bot" class="w-4 h-4"></i>
-            + Thêm Bot Máy
-          </button>
-          <button 
-            id="btn-start-race" 
-            onclick="window.gameHost.startCountdown()" 
-            class="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:pointer-events-none">
-            <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
-            BẮT ĐẦU ĐUA!
-          </button>
-        </div>
-
-      </div>
-
-      <!-- Cột Phải: Danh Sách Tay Chèo Đã Vào Phòng -->
-      <div class="lg:col-span-7 glass-panel p-6 rounded-3xl space-y-4 flex flex-col shadow-2xl min-h-[380px]">
-        <div class="flex items-center justify-between pb-3 border-b border-slate-700/80">
-          <div>
-            <h3 class="text-lg font-black text-white flex items-center gap-2">
-              <i data-lucide="users" class="w-5 h-5 text-indigo-400"></i>
-              Danh Sách Đội Đua
-            </h3>
-            <p id="lobby-player-count" class="text-xs text-slate-400">0 thuyền tham gia</p>
-          </div>
-          <button onclick="window.gameHost.clearAllPlayers()" class="text-xs text-rose-400 hover:underline">
-            Xóa tất cả
-          </button>
-        </div>
-
-        <!-- Danh sách thuyền scroll -->
-        <div id="lobby-player-list" class="flex-1 overflow-y-auto space-y-2.5 max-h-[380px] pr-1">
-          <div class="text-center py-12 text-slate-500 text-sm">
-            Chưa có người chơi nào vào phòng.<br/>
-            Quét mã QR hoặc nhấn <b>"+ Thêm Bot Máy"</b> để bắt đầu!
-          </div>
-        </div>
-
-        <!-- Hướng dẫn nhanh cách điều khiển -->
-        <div class="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/30 flex items-center gap-3 text-xs text-indigo-200">
-          <i data-lucide="info" class="w-5 h-5 text-indigo-400 shrink-0"></i>
-          <div>
-            <b>Cách chơi:</b> Người chơi bấm luân phiên <b>Mái Chèo Trái (L)</b> và <b>Phải (R)</b> trên điện thoại để thuyền lướt đi theo phương ngang!
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ========================================================
-         2. RACE TRACK VIEW (DÒNG SÔNG NẰM NGANG)
-         ======================================================== -->
-    <div id="race-screen" class="hidden flex-1 flex flex-col justify-between w-full h-full relative z-10">
-      
-      <!-- Top HUD: Thời gian đua & Vạch cự ly -->
-      <div class="flex items-center justify-between px-4 py-2 bg-slate-900/80 rounded-2xl border border-slate-800 mb-3 shadow-lg">
+    <!-- Top HUD Bar khi đang đua -->
+    <div id="race-top-hud" class="hidden flex items-center justify-between px-5 py-2.5 bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-700/80 mb-3 shadow-xl z-20">
+      <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-400">Thời gian:</span>
-          <span id="race-timer-display" class="font-mono font-black text-xl text-amber-400">0.0s</span>
+          <span class="text-xs text-slate-400 font-bold uppercase">Thời gian:</span>
+          <span id="race-timer-display" class="font-mono font-black text-2xl text-amber-400">0.0s</span>
         </div>
-        <div class="flex items-center gap-2 text-xs text-slate-300">
-          <i data-lucide="waves" class="w-4 h-4 text-cyan-400"></i>
-          <span>Phương ngang: <b>Trái &rarr; Phải (Về đích)</b></span>
+        <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-800 text-xs text-cyan-300 font-bold">
+          <i data-lucide="flag" class="w-4 h-4 text-amber-400"></i>
+          <span id="race-dist-badge">Cự ly: 500m</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="text-xs text-slate-300 hidden md:block">
+          Hướng đi: <b>Trái &rarr; Phải (Về Đích)</b>
         </div>
         <button 
           onclick="window.gameHost.resetToLobby()" 
-          class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">
-          Hủy / Về Phòng Chờ
+          class="px-4 py-1.5 bg-rose-900/60 hover:bg-rose-800 border border-rose-500/40 text-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          Dừng / Về Phòng Chờ
         </button>
       </div>
+    </div>
 
-      <!-- Canvas Dòng Sông -->
-      <div class="race-canvas-wrapper flex-1 w-full min-h-[380px] flex items-center justify-center">
-        <canvas id="race-canvas" class="w-full h-full block"></canvas>
+    <!-- Khung Chứa Canvas Dòng Sông (Luôn hiển thị ở mọi trạng thái) -->
+    <div class="race-canvas-wrapper flex-1 w-full min-h-[360px] relative flex items-center justify-center">
+      <canvas id="race-canvas" class="w-full h-full block absolute inset-0"></canvas>
+
+      <!-- ========================================================
+           1. LOBBY OVERLAY (NỔI TRÊN NỀN DÒNG SÔNG)
+           ======================================================== -->
+      <div id="lobby-overlay" class="absolute inset-0 z-10 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full max-w-5xl my-auto animate-fadeIn">
+          
+          <!-- Cột Trái: Mã QR & Nút Bắt Đầu -->
+          <div class="lg:col-span-5 glass-panel p-5 md:p-6 rounded-3xl space-y-4 flex flex-col items-center text-center shadow-2xl border border-slate-700">
+            <div>
+              <span class="text-[11px] uppercase font-black tracking-widest text-cyan-400">QUÉT MÃ TRÊN ĐIỆN THOẠI ĐỂ CHÈO</span>
+              <h2 class="text-xl font-black text-white mt-0.5">Giơ Camera Quét Mã QR</h2>
+            </div>
+
+            <!-- Khung QR Code -->
+            <div class="p-3 bg-white rounded-2xl shadow-xl shadow-cyan-500/20 glow-cyan">
+              <div id="qr-code-container" class="flex items-center justify-center min-w-[160px] min-h-[160px]"></div>
+            </div>
+
+            <div class="space-y-1 w-full text-center">
+              <div class="text-[11px] text-slate-400">Mã PIN Phòng:</div>
+              <div class="text-2xl font-mono font-black text-amber-400 bg-slate-900/90 py-1 px-3 rounded-xl border border-slate-800">
+                <span id="room-pin-display-lobby">----</span>
+              </div>
+            </div>
+
+            <!-- Chọn Cự Ly -->
+            <div class="w-full space-y-1.5 pt-2 border-t border-slate-700/60">
+              <div class="text-[11px] font-bold text-slate-300 text-left flex items-center gap-1.5">
+                <i data-lucide="flag" class="w-3.5 h-3.5 text-amber-400"></i> Cự Ly Đua:
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <button onclick="window.gameHost.setTargetDistance(300)" data-dist="300" class="distance-select-btn py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
+                  300m
+                </button>
+                <button onclick="window.gameHost.setTargetDistance(500)" data-dist="500" class="distance-select-btn py-1.5 px-2 rounded-xl text-xs font-bold bg-indigo-600 text-white shadow-indigo-500/30 transition">
+                  500m
+                </button>
+                <button onclick="window.gameHost.setTargetDistance(1000)" data-dist="1000" class="distance-select-btn py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-400 hover:bg-slate-700 transition">
+                  1000m
+                </button>
+              </div>
+            </div>
+
+            <!-- Nút Thao Tác -->
+            <div class="w-full grid grid-cols-2 gap-2.5 pt-1">
+              <button 
+                onclick="window.gameHost.addBot()" 
+                class="py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-lg">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+                + Thêm Bot
+              </button>
+              <button 
+                id="btn-start-race" 
+                onclick="window.gameHost.startCountdown()" 
+                class="py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs md:text-sm flex items-center justify-center gap-1.5 transition shadow-lg shadow-emerald-500/30 disabled:opacity-50 disabled:pointer-events-none">
+                <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
+                BẮT ĐẦU!
+              </button>
+            </div>
+          </div>
+
+          <!-- Cột Phải: Danh Sách Thuyền Đang Chờ Tại Vạch Xuất Phát -->
+          <div class="lg:col-span-7 glass-panel p-5 md:p-6 rounded-3xl space-y-4 flex flex-col shadow-2xl border border-slate-700 min-h-[380px]">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-700/80">
+              <div>
+                <h3 class="text-base font-black text-white flex items-center gap-2">
+                  <i data-lucide="users" class="w-4 h-4 text-indigo-400"></i>
+                  Thuyền Tại Vạch Xuất Phát
+                </h3>
+                <p id="lobby-player-count" class="text-xs text-slate-400">0 thuyền sẵn sàng</p>
+              </div>
+              <button onclick="window.gameHost.clearAllPlayers()" class="text-xs text-rose-400 hover:underline">
+                Xóa tất cả
+              </button>
+            </div>
+
+            <div id="lobby-player-list" class="flex-1 overflow-y-auto space-y-2 max-h-[300px] pr-1"></div>
+
+            <div class="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 flex items-center gap-2.5 text-xs text-indigo-200">
+              <i data-lucide="info" class="w-5 h-5 text-indigo-400 shrink-0"></i>
+              <div>
+                <b>Cách chèo:</b> Trên điện thoại, bấm <b>Mái Chèo Trái (L)</b> và <b>Phải (R)</b> luân phiên liên tục để thuyền lướt theo phương ngang!
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
-
     </div>
 
     <!-- ========================================================
