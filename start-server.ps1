@@ -1,3 +1,7 @@
+param (
+    [string]$App = "cheo-thuyen"
+)
+
 # PowerShell Native HTTP Static Server
 $port = 8080
 $path = $PSScriptRoot
@@ -22,23 +26,30 @@ try {
 }
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   MAY CHU QUIZ LIVE SHOW DA SAN SANG HOAT DONG!          " -ForegroundColor Green
+Write-Host "   MAY CHU GAME & QUIZ LIVE SHOW DA SAN SANG!             " -ForegroundColor Green
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Màn hình Quản trò (Host / Máy chiếu):" -ForegroundColor Yellow
-Write-Host "   http://$($ip):$port/quiz/host.html" -ForegroundColor White
-Write-Host "   http://localhost:$port/quiz/host.html" -ForegroundColor Gray
+Write-Host "[1] GAME CHÈO THUYỀN ĐUA NGANG (QUÉT QR CHƠI NGAY):" -ForegroundColor Cyan
+Write-Host "   Máy chiếu / Quản trò : http://$($ip):$port/cheo-thuyen/index.html" -ForegroundColor White
+Write-Host "   Người chơi (Điện thoại): http://$($ip):$port/cheo-thuyen/player.html" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Màn hình Người chơi (Điện thoại quét QR hoặc vào link):" -ForegroundColor Yellow
-Write-Host "   http://$($ip):$port/quiz/player.html" -ForegroundColor White
+Write-Host "[2] QUIZ LIVE SHOW:" -ForegroundColor Cyan
+Write-Host "   Máy chiếu / Quản trò : http://$($ip):$port/quiz/host.html" -ForegroundColor White
+Write-Host "   Người chơi (Điện thoại): http://$($ip):$port/quiz/player.html" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "Trang chủ trung tâm (Hub):" -ForegroundColor Yellow
-Write-Host "   http://$($ip):$port/quiz/index.html" -ForegroundColor White
+Write-Host "[3] TRUNG TÂM PERSONAL HUB:" -ForegroundColor Cyan
+Write-Host "   Trang chủ Hub        : http://$($ip):$port/index.html" -ForegroundColor White
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# Mo trinh duyet
-Start-Process "http://$($ip):$port/quiz/host.html"
+# Mo trinh duyet theo App duoc chon
+if ($App -eq "quiz") {
+    Start-Process "http://$($ip):$port/quiz/host.html"
+} elseif ($App -eq "cheo-thuyen") {
+    Start-Process "http://$($ip):$port/cheo-thuyen/index.html"
+} else {
+    Start-Process "http://$($ip):$port/index.html"
+}
 
 while ($listener.IsListening) {
     try {

@@ -53,9 +53,11 @@ Write-Host "==========================================================" -Foregro
 Write-Host "🎉 HOÀN TẤT ĐẨY MÃ NGUỒN LÊN GITHUB!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Link trang web sau khi GitHub Pages build xong (khoảng 1 phút):" -ForegroundColor Yellow
-Write-Host "   👉 Màn hình Slide bài giảng: https://thang605.github.io/personal-hub/quiz/slide.html?lesson=bai_giang_ai_2026&sec=1" -ForegroundColor Cyan
-Write-Host "   👉 Màn hình Quản trò (Host):  https://thang605.github.io/personal-hub/quiz/host.html" -ForegroundColor Cyan
-Write-Host "   👉 Cổng trung tâm (Hub):      https://thang605.github.io/personal-hub/quiz/index.html" -ForegroundColor Cyan
+Write-Host "   🚣 Game Chèo Thuyền (Quản trò/Máy chiếu): https://thang605.github.io/personal-hub/cheo-thuyen/index.html" -ForegroundColor Cyan
+Write-Host "   📱 Game Chèo Thuyền (Tay cầm Người chơi): https://thang605.github.io/personal-hub/cheo-thuyen/player.html" -ForegroundColor Yellow
+Write-Host "   👉 Màn hình Slide bài giảng:              https://thang605.github.io/personal-hub/quiz/slide.html?lesson=bai_giang_ai_2026&sec=1" -ForegroundColor Cyan
+Write-Host "   👉 Màn hình Quiz Host:                   https://thang605.github.io/personal-hub/quiz/host.html" -ForegroundColor Cyan
+Write-Host "   👉 Cổng trung tâm (Hub):                  https://thang605.github.io/personal-hub/quiz/index.html" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
 Pause

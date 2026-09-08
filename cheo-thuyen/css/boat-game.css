@@ -1,0 +1,139 @@
+/* Boat Race Game Stylesheet */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #06b6d4;
+  --accent-color: #f59e0b;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  overflow-x: hidden;
+}
+
+/* ========================================================
+   ANIMATIONS & EFFECTS
+   ======================================================== */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4), inset 0 0 15px rgba(56, 189, 248, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.8), inset 0 0 25px rgba(56, 189, 248, 0.5);
+  }
+}
+
+@keyframes floatAnim {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes waterFlow {
+  0% { background-position: 0 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.animate-float {
+  animation: floatAnim 3s ease-in-out infinite;
+}
+
+.glow-cyan {
+  animation: pulseGlow 2s infinite;
+}
+
+/* ========================================================
+   ERGONOMIC PADDLE BUTTONS (MOBILE CONTROLLER)
+   ======================================================== */
+.paddle-btn {
+  position: relative;
+  border-radius: 28px;
+  background: linear-gradient(145deg, #1e293b, #0f172a);
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  transition: all 0.08s ease-out;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.paddle-btn:active,
+.paddle-btn.pressed {
+  transform: translateY(6px) scale(0.96);
+  box-shadow: 0 4px 10px -2px rgba(0, 0, 0, 0.8), inset 0 4px 8px rgba(0, 0, 0, 0.6);
+  border-color: rgba(56, 189, 248, 0.8);
+  background: linear-gradient(145deg, #0f172a, #0284c7);
+}
+
+.paddle-btn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), transparent);
+  border-radius: 26px 26px 0 0;
+  pointer-events: none;
+}
+
+/* Biểu tượng mái chèo bên trong nút */
+.paddle-oar-icon {
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.paddle-btn:active .paddle-oar-icon {
+  transform: scale(1.15) rotate(-12deg);
+}
+
+/* ========================================================
+   WATER CANVASES & RACE SCREEN
+   ======================================================== */
+.race-canvas-wrapper {
+  position: relative;
+  background: #083344;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ========================================================
+   VICTORY PODIUM
+   ======================================================== */
+.podium-pillar {
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+.podium-1st {
+  background: linear-gradient(180deg, #eab308, #854d0e);
+  border: 2px solid #fef08a;
+}
+
+.podium-2nd {
+  background: linear-gradient(180deg, #94a3b8, #334155);
+  border: 2px solid #e2e8f0;
+}
+
+.podium-3rd {
+  background: linear-gradient(180deg, #d97706, #78350f);
+  border: 2px solid #fed7aa;
+}
+
+/* ========================================================
+   MODAL & GLASSMORPHISM
+   ======================================================== */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}

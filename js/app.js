@@ -114,6 +114,7 @@ class AppController {
       { id: "bookmarks", label: "Bookmarks", icon: "bookmark" },
       { id: "finance", label: "Tài chính & Thu chi", icon: "wallet" },
       { id: "tasks", label: "Việc cần làm", icon: "check-square" },
+      { id: "cheo-thuyen", label: "Đua Thuyền (QR)", icon: "waves", badge: "MỚI", link: "cheo-thuyen/index.html" },
       { id: "quiz", label: "Đấu Trí Quiz Live", icon: "gamepad-2", badge: "HOT", link: "quiz/index.html" },
       { id: "settings", label: "Cài đặt & Sao lưu", icon: "settings" }
     ];
