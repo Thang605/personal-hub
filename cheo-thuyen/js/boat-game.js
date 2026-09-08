@@ -293,12 +293,18 @@ class BoatHostGame {
     }
 
     if (startBtn) {
-      startBtn.disabled = this.players.size === 0;
+      startBtn.disabled = false;
+    }
+    const headerStartBtn = document.getElementById("btn-start-race-header");
+    if (headerStartBtn) {
+      headerStartBtn.disabled = false;
     }
   }
 
   setTargetDistance(dist) {
     this.targetDistance = Number(dist);
+    const badge = document.getElementById("race-dist-badge");
+    if (badge) badge.innerText = `Cự ly: ${this.targetDistance}m`;
     const distBtns = document.querySelectorAll(".distance-select-btn");
     distBtns.forEach((btn) => {
       if (Number(btn.dataset.dist) === this.targetDistance) {
@@ -315,7 +321,11 @@ class BoatHostGame {
   // TIẾN TRÌNH TRẬN ĐUA (RACE LIFECYCLE)
   // ==========================================
   startCountdown() {
-    if (this.players.size === 0) return;
+    // Tự động thêm 2 bot nếu chưa có ai để luôn luôn bắt đầu được ngay
+    if (this.players.size === 0) {
+      this.addBot();
+      this.addBot();
+    }
 
     this.state = "COUNTDOWN";
     this.countdownValue = 3;
@@ -334,6 +344,7 @@ class BoatHostGame {
 
     // Ẩn Lobby, hiện màn hình Đua và HUD
     document.getElementById("lobby-overlay")?.classList.add("hidden");
+    document.getElementById("btn-start-race-header")?.classList.add("hidden");
     document.getElementById("race-top-hud")?.classList.remove("hidden");
     document.getElementById("victory-modal")?.classList.add("hidden");
     this._resizeCanvas();
@@ -668,6 +679,7 @@ class BoatHostGame {
     this.state = "LOBBY";
     document.getElementById("victory-modal")?.classList.add("hidden");
     document.getElementById("race-top-hud")?.classList.add("hidden");
+    document.getElementById("btn-start-race-header")?.classList.remove("hidden");
     document.getElementById("lobby-overlay")?.classList.remove("hidden");
     this._resizeCanvas();
     this._updateLobbyUI();
