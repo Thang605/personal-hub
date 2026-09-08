@@ -63,7 +63,7 @@ class SlideController {
 
     this.totalTime = this.section.time || 20;
     this.timeRemaining = this.totalTime;
-    this.pin = "sec_" + this.lessonId + "_" + this.sectionIndex;
+    this.pin = urlParams.get("pin") || ("sec_" + this.lessonId + "_" + this.sectionIndex);
 
     // 3. Khởi tạo kết nối mạng bình chọn thời gian thực
     this._initLiveNetwork();
@@ -80,12 +80,16 @@ class SlideController {
         this.network.initHost(this.pin);
 
         this.network.on("player_vote", (data) => {
-          if (data && data.choiceIndex >= 0 && data.choiceIndex < 4) {
+          if (data && typeof data.choiceIndex === "number" && data.choiceIndex >= 0 && data.choiceIndex < 4) {
             this.liveVotes[data.choiceIndex]++;
             this.votedCount++;
             this.updateLiveVotesDisplay();
             try { window.soundEffects.playClick(); } catch (e) {}
           }
+        });
+
+        this.network.on("player_join", (data) => {
+          console.log("[Slide Controller] Người chơi mới tham gia:", data);
         });
       }
     } catch (e) {
@@ -116,6 +120,16 @@ class SlideController {
         this.timeRemaining = 0;
         try { window.soundEffects.playTimeUp(); } catch (e) {}
         this.updateTimerDisplay();
+
+        // Tự động phát kết quả tới học viên khi hết giờ
+        if (this.network) {
+          this.network.broadcast({
+            type: "TIME_UP",
+            correctIndex: this.section.correct,
+            explanation: this.section.explanation,
+            keyTakeaway: this.section.keyTakeaway
+          });
+        }
       }
     }, 1000);
   }
@@ -136,6 +150,16 @@ class SlideController {
     this.mySelectedOption = null;
     this.liveVotes = [0, 0, 0, 0];
     this.votedCount = 0;
+
+    // Báo cho các điện thoại của học viên reset để bình chọn lại
+    if (this.network) {
+      this.network.broadcast({
+        type: "QUESTION_RESET",
+        lessonId: this.lessonId,
+        sectionIndex: this.sectionIndex
+      });
+    }
+
     this.render();
     this.startTimer();
   }
@@ -314,6 +338,16 @@ class SlideController {
       }
     } catch (e) {}
 
+    // Phát kết quả đúng/sai và giải thích cho toàn bộ điện thoại học viên
+    if (this.network) {
+      this.network.broadcast({
+        type: "TIME_UP",
+        correctIndex: correctIdx,
+        explanation: this.section.explanation,
+        keyTakeaway: this.section.keyTakeaway
+      });
+    }
+
     for (let i = 0; i < 4; i++) {
       const card = document.getElementById(`opt-card-${i}`);
       if (card) {
@@ -357,6 +391,26 @@ class SlideController {
     }
   }
 
+  copyPlayerUrl() {
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/"));
+    const playerUrl = `${origin}${path}/slide-player.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex}&pin=${encodeURIComponent(this.pin)}`;
+    
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(playerUrl).then(() => {
+        const btnText = document.getElementById("copy-btn-text");
+        if (btnText) {
+          btnText.textContent = "Đã chép!";
+          setTimeout(() => { btnText.textContent = "Sao chép link"; }, 2000);
+        }
+      }).catch(() => {
+        prompt("Sao chép link người chơi:", playerUrl);
+      });
+    } else {
+      prompt("Sao chép link người chơi:", playerUrl);
+    }
+  }
+
   // ==========================================
   // RENDER MÀN HÌNH CHÍNH (SIDE-BY-SIDE: CÂU HỎI + MÃ QR + BẢNG KẾT QUẢ LIVE)
   // ==========================================
@@ -371,7 +425,7 @@ class SlideController {
 
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/"));
-    const playerUrl = `${origin}${path}/slide.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex}`;
+    const playerUrl = `${origin}${path}/slide-player.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex}&pin=${encodeURIComponent(this.pin)}`;
 
     const optionColors = [
       { bg: "bg-red-500", border: "border-red-500", label: "A", icon: "▲", barClass: "live-bar-a" },
@@ -442,7 +496,7 @@ class SlideController {
                 </div>
 
                 <span class="text-indigo-300 text-[11px] font-semibold">
-                  👉 Chạm vào 1 ô màu để chọn đáp án
+                  👉 Học viên quét mã QR bên phải để chọn đáp án trên điện thoại
                 </span>
               </div>
             </div>
@@ -524,7 +578,7 @@ class SlideController {
           <div class="lg:col-span-4 space-y-4">
             
             <!-- QR CODE BOX (Thường Trực Trên Màn Hình Máy Chiếu) -->
-            <div class="glass-panel p-5 rounded-3xl text-center space-y-3 border-indigo-500/30 shadow-xl">
+            <div class="glass-panel p-4 sm:p-5 rounded-3xl text-center space-y-2.5 border-indigo-500/30 shadow-xl">
               <div class="space-y-0.5">
                 <span class="text-[10px] font-black uppercase tracking-wider text-pink-400 flex items-center justify-center gap-1">
                   <i data-lucide="scan-line" class="w-3.5 h-3.5"></i>
@@ -533,12 +587,18 @@ class SlideController {
                 <p class="text-xs font-bold text-white">Dùng Zalo hoặc Camera điện thoại</p>
               </div>
 
-              <div class="p-3 bg-white rounded-2xl mx-auto inline-block shadow-lg">
+              <div class="p-2.5 bg-white rounded-2xl mx-auto inline-block shadow-lg">
                 <div id="live-side-qrcode" class="w-[140px] h-[140px] sm:w-[150px] sm:h-[150px] flex items-center justify-center"></div>
               </div>
 
-              <div class="text-[11px] text-slate-400 font-medium">
-                Học viên quét mã để trả lời ngay trên điện thoại
+              <div class="flex items-center justify-center gap-2 pt-0.5">
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-lg bg-indigo-950 text-indigo-300 border border-indigo-500/30 font-bold">
+                  PIN: ${this.pin}
+                </span>
+                <button type="button" onclick="slideApp.copyPlayerUrl()" class="text-[10px] px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-700 flex items-center gap-1 transition">
+                  <i data-lucide="copy" class="w-3 h-3"></i>
+                  <span id="copy-btn-text">Sao chép link</span>
+                </button>
               </div>
             </div>
 

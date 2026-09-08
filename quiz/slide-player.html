@@ -26,6 +26,9 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <!-- Paho MQTT over WebSocket -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+
   <!-- PeerJS for WebRTC Real-time P2P -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
@@ -47,6 +50,7 @@
       constructor() {
         this.lessonId = null;
         this.sectionIndex = 1;
+        this.pin = null;
         this.lesson = null;
         this.section = null;
         this.myVote = null;
@@ -58,6 +62,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         this.lessonId = urlParams.get("lesson") || "bai_giang_ai_2026";
         this.sectionIndex = Number(urlParams.get("sec") || 1);
+        this.pin = urlParams.get("pin") || ("sec_" + this.lessonId + "_" + this.sectionIndex);
 
         this.lesson = window.slideDataManager.getById(this.lessonId) || window.slideDataManager.getAll()[0];
         if (this.lesson) {
@@ -68,19 +73,35 @@
           document.getElementById("slide-player-root").innerHTML = `
             <div class="my-auto text-center p-6 glass-panel rounded-3xl space-y-3">
               <i data-lucide="alert-circle" class="w-10 h-10 text-amber-400 mx-auto"></i>
-              <h3 class="text-base font-bold">Không tìm thấy câu hỏi</h3>
+              <h3 class="text-base font-bold">Đang tải câu hỏi hoặc không tìm thấy</h3>
+              <p class="text-xs text-slate-400">Vui lòng kiểm tra lại mã QR từ màn hình Giảng viên.</p>
             </div>
           `;
           if (window.lucide) lucide.createIcons();
           return;
         }
 
-        const pin = "sec_" + this.lessonId + "_" + this.sectionIndex;
         this.network = new PeerNetwork();
-        this.network.initPlayer(pin, { id: this.playerId, name: "Khán giả" });
+        this.network.initPlayer(this.pin, { id: this.playerId, name: "Khán giả" });
 
         this.network.on("time_up", (data) => {
           this.handleResult(data);
+        });
+
+        this.network.on("question_reset", () => {
+          this.myVote = null;
+          this.renderQuestion();
+        });
+
+        this.network.on("status_change", (data) => {
+          const statusBadge = document.getElementById("net-status-badge");
+          if (statusBadge) {
+            if (data.status === "connected") {
+              statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> <span class="text-[10px] text-emerald-300 font-bold">Đã kết nối</span>`;
+            } else {
+              statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> <span class="text-[10px] text-amber-300 font-bold">Đang kết nối...</span>`;
+            }
+          }
         });
 
         this.renderQuestion();
@@ -92,41 +113,48 @@
 
         root.innerHTML = `
           <!-- Header -->
-          <header class="space-y-1 text-center pt-2">
-            <span class="px-3 py-1 rounded-full text-[11px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 inline-block">
-              ${this.lesson.title}
-            </span>
-            <h2 class="text-xs text-slate-400 font-bold">${sec.sectionTitle}</h2>
+          <header class="space-y-1.5 text-center pt-2">
+            <div class="flex items-center justify-between gap-2 px-1">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                Đề mục ${this.sectionIndex}
+              </span>
+              <div id="net-status-badge" class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span class="text-[10px] text-emerald-300 font-bold">Đã kết nối</span>
+              </div>
+            </div>
+            <h1 class="text-xs text-indigo-200 font-extrabold truncate px-2">${this.lesson.title}</h1>
+            <h2 class="text-[11px] text-slate-400 font-semibold truncate px-2">${sec.sectionTitle}</h2>
           </header>
 
           <!-- Question Content -->
-          <div class="glass-panel p-5 rounded-2xl my-3 text-center">
-            <p class="text-sm sm:text-base font-extrabold text-white leading-relaxed">${sec.question}</p>
+          <div class="glass-panel p-4 sm:p-5 rounded-2xl my-3 text-center shadow-lg border-indigo-500/20">
+            <p class="text-sm sm:text-base font-extrabold text-white leading-snug">${sec.question}</p>
           </div>
 
           <!-- 4 Buttons -->
           <main class="grid grid-cols-2 gap-3 my-auto py-2">
-            <button id="btn-0" onclick="slidePlayer.vote(0)" class="btn-choice-a h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white">
+            <button id="btn-0" onclick="slidePlayer.vote(0)" class="btn-choice-a h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white active:scale-95 transition">
               <span class="text-xl font-black mb-1">▲</span>
-              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[0]}</span>
+              <span class="text-xs font-bold text-center line-clamp-3 leading-tight">${sec.choices[0]}</span>
             </button>
-            <button id="btn-1" onclick="slidePlayer.vote(1)" class="btn-choice-b h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white">
+            <button id="btn-1" onclick="slidePlayer.vote(1)" class="btn-choice-b h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white active:scale-95 transition">
               <span class="text-xl font-black mb-1">◆</span>
-              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[1]}</span>
+              <span class="text-xs font-bold text-center line-clamp-3 leading-tight">${sec.choices[1]}</span>
             </button>
-            <button id="btn-2" onclick="slidePlayer.vote(2)" class="btn-choice-c h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-amber-950">
+            <button id="btn-2" onclick="slidePlayer.vote(2)" class="btn-choice-c h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-amber-950 active:scale-95 transition">
               <span class="text-xl font-black mb-1">●</span>
-              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[2]}</span>
+              <span class="text-xs font-bold text-center line-clamp-3 leading-tight">${sec.choices[2]}</span>
             </button>
-            <button id="btn-3" onclick="slidePlayer.vote(3)" class="btn-choice-d h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white">
+            <button id="btn-3" onclick="slidePlayer.vote(3)" class="btn-choice-d h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white active:scale-95 transition">
               <span class="text-xl font-black mb-1">■</span>
-              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[3]}</span>
+              <span class="text-xs font-bold text-center line-clamp-3 leading-tight">${sec.choices[3]}</span>
             </button>
           </main>
 
           <!-- Footer Status -->
           <footer id="player-status-bar" class="text-center text-xs text-slate-400 pb-2">
-            Chạm vào 1 phương án để gửi bình chọn
+            Chạm vào 1 trong 4 phương án màu ở trên để gửi câu trả lời
           </footer>
         `;
 
@@ -137,8 +165,12 @@
         if (this.myVote !== null) return;
         this.myVote = idx;
 
-        if (navigator.vibrate) navigator.vibrate(30);
-        window.soundEffects.playClick();
+        try {
+          if (navigator && navigator.vibrate) navigator.vibrate(30);
+        } catch (e) {}
+        try {
+          if (window.soundEffects) window.soundEffects.playClick();
+        } catch (e) {}
 
         if (this.network) {
           this.network.sendToHost({
@@ -166,7 +198,7 @@
           bar.innerHTML = `
             <span class="text-emerald-400 font-bold flex items-center justify-center gap-1.5 animate-pulse">
               <i data-lucide="check-circle" class="w-4 h-4"></i>
-              Đã gửi bình chọn! Đang chờ Giảng viên công bố đáp án...
+              Đã gửi câu trả lời thành công! Đang chờ công bố kết quả...
             </span>
           `;
           if (window.lucide) lucide.createIcons();
@@ -174,41 +206,43 @@
       }
 
       handleResult(data) {
-        const correctIdx = data.correctIndex;
+        const correctIdx = typeof data.correctIndex === "number" ? data.correctIndex : (this.section ? this.section.correct : 0);
         const isCorrect = this.myVote === correctIdx;
         const root = document.getElementById("slide-player-root");
 
-        if (isCorrect) {
-          window.soundEffects.playCorrect();
-        } else {
-          window.soundEffects.playWrong();
-        }
+        try {
+          if (isCorrect) {
+            window.soundEffects.playCorrect();
+          } else {
+            window.soundEffects.playWrong();
+          }
+        } catch (e) {}
 
         root.innerHTML = `
-          <div class="my-auto text-center space-y-5 p-6 glass-panel rounded-3xl border-2 ${isCorrect ? 'border-emerald-500 bg-emerald-950/40' : 'border-rose-500 bg-rose-950/40'}">
+          <div class="my-auto text-center space-y-4 p-5 sm:p-6 glass-panel rounded-3xl border-2 ${isCorrect ? 'border-emerald-500 bg-emerald-950/40' : 'border-rose-500 bg-rose-950/40'} animate-fade-in">
             <div class="text-6xl animate-bounce">${isCorrect ? '🎉' : '😢'}</div>
             <div>
               <h2 class="text-2xl font-black ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">
                 ${isCorrect ? 'CHÍNH XÁC!' : 'CHƯA ĐÚNG RỒI!'}
               </h2>
-              <p class="text-xs text-slate-300 mt-1">Đáp án đúng là: Phương án ${["A", "B", "C", "D"][correctIdx]}</p>
+              <p class="text-xs text-slate-300 mt-1">Đáp án đúng là: <strong class="text-white">Phương án ${["A", "B", "C", "D"][correctIdx]}</strong></p>
             </div>
 
-            ${data.explanation ? `
+            ${(data && data.explanation) || (this.section && this.section.explanation) ? `
               <div class="p-4 bg-slate-900/90 rounded-2xl text-left text-xs text-slate-300 leading-relaxed border border-slate-700">
                 <span class="font-bold text-indigo-300 block mb-1">💡 Giải thích:</span>
-                ${data.explanation}
+                ${(data && data.explanation) || (this.section && this.section.explanation)}
               </div>
             ` : ""}
 
-            ${data.keyTakeaway ? `
+            ${(data && data.keyTakeaway) || (this.section && this.section.keyTakeaway) ? `
               <div class="p-3.5 bg-indigo-950/80 rounded-2xl text-left text-xs text-indigo-200 font-bold leading-relaxed border border-indigo-500/40">
-                ${data.keyTakeaway}
+                ${(data && data.keyTakeaway) || (this.section && this.section.keyTakeaway)}
               </div>
             ` : ""}
           </div>
           <footer class="text-center text-xs text-slate-500 pb-2">
-            Hãy nhìn lên màn hình giảng viên để tiếp tục bài giảng
+            Hãy nhìn lên màn hình Slide để tiếp tục bài học
           </footer>
         `;
         if (window.lucide) lucide.createIcons();
