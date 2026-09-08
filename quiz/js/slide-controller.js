@@ -1,6 +1,6 @@
 /**
  * Slide Presentation Controller (Màn Hình Chiếu Câu Hỏi Theo Đề Mục Slide)
- * Tối ưu hóa cho máy chiếu phòng học, hỗ trợ xem đáp án nhanh và bình chọn trực tiếp qua QR.
+ * Tối ưu hóa cho cả máy chiếu lẫn điện thoại quét QR (Zalo/Camera), chạm chọn đáp án tức thì.
  */
 
 class SlideController {
@@ -10,6 +10,7 @@ class SlideController {
     this.lesson = null;
     this.section = null;
     this.isRevealed = false;
+    this.mySelectedOption = null;
     this.timerInterval = null;
     this.timeRemaining = 20;
     this.totalTime = 20;
@@ -30,7 +31,6 @@ class SlideController {
     // 2. Lấy dữ liệu bài giảng
     this.lesson = window.slideDataManager.getById(this.lessonId);
     if (!this.lesson) {
-      // Fallback về bài giảng đầu tiên
       const all = window.slideDataManager.getAll();
       if (all.length > 0) {
         this.lesson = all[0];
@@ -95,7 +95,7 @@ class SlideController {
     if (this.timerInterval) clearInterval(this.timerInterval);
 
     this.timerInterval = setInterval(() => {
-      if (this.isTimerPaused || this.isRevealed) return;
+      if (this.isTimerPaused || this.isRevealed || this.mySelectedOption !== null) return;
 
       this.timeRemaining--;
 
@@ -129,6 +129,7 @@ class SlideController {
     this.timeRemaining = this.totalTime;
     this.isTimerPaused = false;
     this.isRevealed = false;
+    this.mySelectedOption = null;
     this.liveVotes = [0, 0, 0, 0];
     this.votedCount = 0;
     this.render();
@@ -169,8 +170,92 @@ class SlideController {
     }
   }
 
+  // =========================================================================
+  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP (DÀNH CHO NGƯỜI QUÉT QR ZALO / NGƯỜI THAM GIA)
+  // =========================================================================
+  selectOption(idx) {
+    if (this.mySelectedOption !== null) return;
+    this.mySelectedOption = idx;
+    if (this.timerInterval) clearInterval(this.timerInterval);
+
+    const correctIdx = this.section.correct;
+    const isCorrect = idx === correctIdx;
+
+    // Rung nhẹ phản hồi nếu thiết bị hỗ trợ
+    if (navigator.vibrate) {
+      navigator.vibrate(isCorrect ? [40, 60, 40] : [100]);
+    }
+
+    // Ghi nhận lượt bình chọn
+    this.liveVotes[idx]++;
+    this.votedCount++;
+    this.updateLiveVotesDisplay();
+
+    if (isCorrect) {
+      window.soundEffects.playCorrect();
+      if (window.confetti) {
+        window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
+      }
+    } else {
+      window.soundEffects.playWrong();
+    }
+
+    // Làm nổi bật trực tiếp các thẻ phương án
+    for (let i = 0; i < 4; i++) {
+      const card = document.getElementById(`opt-card-${i}`);
+      if (card) {
+        if (i === correctIdx) {
+          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950/80");
+          card.classList.remove("opacity-40", "grayscale-[40%]");
+          // Gắn huy hiệu Đúng
+          const tag = card.querySelector(".choice-tag");
+          if (tag) tag.innerHTML = `✓ Đúng`;
+        } else if (i === idx) {
+          // Người dùng chọn sai
+          card.classList.add("ring-4", "ring-rose-500", "bg-rose-950/80");
+          const tag = card.querySelector(".choice-tag");
+          if (tag) tag.innerHTML = `✕ Bạn chọn`;
+        } else {
+          card.classList.add("opacity-30", "grayscale-[50%]");
+        }
+      }
+    }
+
+    // Hiển thị khung giải thích & Key Takeaways
+    const explainBox = document.getElementById("explanation-box");
+    if (explainBox) {
+      explainBox.classList.remove("hidden");
+      const statusHeader = document.getElementById("explain-status-header");
+      if (statusHeader) {
+        if (isCorrect) {
+          statusHeader.innerHTML = `
+            <span class="text-sm md:text-base font-black uppercase text-emerald-400 flex items-center gap-2 animate-bounce">
+              <i data-lucide="check-circle" class="w-5 h-5"></i>
+              🎉 CHÍNH XÁC! Bạn đã chọn đúng Phương án ${["A", "B", "C", "D"][correctIdx]}
+            </span>
+          `;
+        } else {
+          statusHeader.innerHTML = `
+            <span class="text-sm md:text-base font-black uppercase text-rose-400 flex items-center gap-2">
+              <i data-lucide="x-circle" class="w-5 h-5"></i>
+              Chưa chính xác! Đáp án đúng là: Phương án ${["A", "B", "C", "D"][correctIdx]}
+            </span>
+          `;
+        }
+      }
+      explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    const revealBtn = document.getElementById("reveal-btn");
+    if (revealBtn) {
+      revealBtn.classList.add("hidden");
+    }
+
+    if (window.lucide) lucide.createIcons();
+  }
+
   // ==========================================
-  // XEM ĐÁP ÁN & GIẢI THÍCH
+  // XEM ĐÁP ÁN & GIẢI THÍCH (DÀNH CHO GIẢNG VIÊN)
   // ==========================================
   revealAnswer() {
     if (this.isRevealed) return;
@@ -180,38 +265,36 @@ class SlideController {
     const correctIdx = this.section.correct;
     window.soundEffects.playCorrect();
 
-    // Bắn pháo hoa ăn mừng
     if (window.confetti) {
       window.confetti({ particleCount: 70, spread: 60, origin: { y: 0.8 } });
     }
 
-    // Báo cho các máy điện thoại người chơi nếu có
-    if (this.network) {
-      this.network.broadcast({
-        type: "TIME_UP",
-        correctIndex: correctIdx,
-        explanation: this.section.explanation || "",
-        keyTakeaway: this.section.keyTakeaway || ""
-      });
-    }
-
-    // Cập nhật giao diện: làm nổi bật đáp án đúng
     for (let i = 0; i < 4; i++) {
       const card = document.getElementById(`opt-card-${i}`);
       if (card) {
         if (i === correctIdx) {
-          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950/70");
-          card.classList.remove("opacity-50");
+          card.classList.add("ring-4", "ring-emerald-400", "bg-emerald-950/80");
+          card.classList.remove("opacity-40", "grayscale-[40%]");
+          const tag = card.querySelector(".choice-tag");
+          if (tag) tag.innerHTML = `✓ Đáp án đúng`;
         } else {
-          card.classList.add("opacity-40", "grayscale-[40%]");
+          card.classList.add("opacity-30", "grayscale-[50%]");
         }
       }
     }
 
-    // Hiển thị khung giải thích & Key Takeaway
     const explainBox = document.getElementById("explanation-box");
     if (explainBox) {
       explainBox.classList.remove("hidden");
+      const statusHeader = document.getElementById("explain-status-header");
+      if (statusHeader) {
+        statusHeader.innerHTML = `
+          <span class="text-sm md:text-base font-black uppercase text-emerald-400 flex items-center gap-2">
+            <i data-lucide="check-circle" class="w-5 h-5"></i>
+            Đáp án chính xác: Phương án ${["A", "B", "C", "D"][correctIdx]}
+          </span>
+        `;
+      }
       explainBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
@@ -219,6 +302,8 @@ class SlideController {
     if (revealBtn) {
       revealBtn.classList.add("hidden");
     }
+
+    if (window.lucide) lucide.createIcons();
   }
 
   // ==========================================
@@ -233,10 +318,9 @@ class SlideController {
     const hasNext = this.sectionIndex < totalSecs;
     const hasPrev = this.sectionIndex > 1;
 
-    // URL quét mã QR cho học viên
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/"));
-    const playerUrl = `${origin}${path}/slide-player.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex}`;
+    const playerUrl = `${origin}${path}/slide.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex}`;
 
     const optionColors = [
       { bg: "bg-red-500", border: "border-red-500", label: "A", icon: "▲", barClass: "live-bar-a" },
@@ -246,52 +330,48 @@ class SlideController {
     ];
 
     container.innerHTML = `
-      <div class="min-h-screen flex flex-col justify-between p-4 md:p-8 bg-game-dark bg-game-glow text-white select-none">
+      <div class="min-h-screen flex flex-col justify-between p-3 sm:p-6 md:p-8 bg-game-dark bg-game-glow text-white select-none">
         
         <!-- Top Bar: Navigation & Slide Context -->
-        <header class="max-w-6xl mx-auto w-full flex items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <header class="max-w-6xl mx-auto w-full flex items-center justify-between gap-4 border-b border-slate-800 pb-3">
           <div class="flex items-center gap-3">
-            <span class="px-3.5 py-1.5 rounded-full text-xs font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-2">
-              <i data-lucide="presentation" class="w-4 h-4 text-indigo-400"></i>
-              <span>SLIDE CHECKPOINT</span>
+            <span class="px-3 py-1 rounded-full text-xs font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 flex items-center gap-1.5 shrink-0">
+              <i data-lucide="presentation" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>CHECKPOINT</span>
             </span>
-            <div>
-              <h1 class="text-sm md:text-base font-extrabold text-white truncate max-w-md md:max-w-xl">${this.lesson.title}</h1>
-              <p class="text-xs font-semibold text-indigo-300">${currentSec.sectionTitle}</p>
+            <div class="truncate">
+              <h1 class="text-xs sm:text-sm md:text-base font-extrabold text-white truncate max-w-xs sm:max-w-md md:max-w-xl">${this.lesson.title}</h1>
+              <p class="text-[11px] sm:text-xs font-semibold text-indigo-300 truncate">${currentSec.sectionTitle}</p>
             </div>
           </div>
 
-          <!-- Controls: Fullscreen, QR Modal, PowerPoint Tip -->
-          <div class="flex items-center gap-2">
-            <button onclick="slideApp.toggleFullscreen()" class="p-2.5 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Toàn màn hình (F11)">
+          <div class="flex items-center gap-2 shrink-0">
+            <button onclick="slideApp.toggleFullscreen()" class="p-2 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Toàn màn hình">
               <i data-lucide="maximize" class="w-4 h-4"></i>
             </button>
-            <button onclick="slideApp.toggleQrModal()" class="px-3.5 py-2 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
-              <i data-lucide="qr-code" class="w-4 h-4 text-pink-400"></i>
-              <span>Mã QR Bình Chọn</span>
+            <button onclick="slideApp.toggleQrModal()" class="px-3 py-1.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center gap-1.5 transition">
+              <i data-lucide="qr-code" class="w-3.5 h-3.5 text-pink-400"></i>
+              <span class="hidden sm:inline">Mã QR</span>
             </button>
-            <a href="slide-builder.html" class="p-2.5 rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition" title="Quản lý bộ câu hỏi">
-              <i data-lucide="settings" class="w-4 h-4"></i>
-            </a>
           </div>
         </header>
 
         <!-- Main Question Presentation Area -->
-        <main class="max-w-6xl mx-auto w-full my-auto py-4 space-y-6">
+        <main class="max-w-6xl mx-auto w-full my-auto py-3 space-y-4 sm:space-y-6">
           
           <!-- Timer Bar & Status Row -->
-          <div class="space-y-2">
-            <div class="w-full bg-slate-800/80 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
+          <div class="space-y-1.5">
+            <div class="w-full bg-slate-800/80 h-2.5 sm:h-3 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
               <div id="slide-timer-progress" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
             </div>
             
             <div class="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
               <div class="flex items-center gap-3">
-                <span class="flex items-center gap-1.5 text-amber-400 font-mono text-base font-black">
+                <span class="flex items-center gap-1 text-amber-400 font-mono text-sm sm:text-base font-black">
                   <i data-lucide="timer" class="w-4 h-4"></i>
                   <span id="slide-timer-num">${this.timeRemaining}</span>s
                 </span>
-                <button onclick="slideApp.togglePauseTimer()" class="hover:text-white p-1" title="Tạm dừng / Tiếp tục đếm">
+                <button onclick="slideApp.togglePauseTimer()" class="hover:text-white p-1" title="Tạm dừng / Đếm tiếp">
                   <i id="pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
                 </button>
                 <button onclick="slideApp.resetTimer()" class="hover:text-white p-1" title="Đếm lại từ đầu">
@@ -300,72 +380,87 @@ class SlideController {
               </div>
 
               <div class="flex items-center gap-2">
-                <span id="live-voters-badge" class="text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-xl border border-indigo-500/20 text-[11px]">
-                  0 lượt bình chọn trực tiếp
+                <span id="live-voters-badge" class="text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-xl border border-indigo-500/20 text-[10px] sm:text-xs">
+                  0 lượt bình chọn
                 </span>
               </div>
             </div>
           </div>
 
           <!-- Question Card -->
-          <div class="glass-panel p-8 md:p-12 rounded-3xl text-center shadow-2xl border-indigo-500/20">
-            <span class="inline-block px-4 py-1 rounded-full text-xs font-black bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 uppercase tracking-wider mb-3">
+          <div class="glass-panel p-6 sm:p-8 md:p-10 rounded-3xl text-center shadow-2xl border-indigo-500/20 space-y-2">
+            <span class="inline-block px-3 py-0.5 rounded-full text-[11px] font-black bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 uppercase tracking-wider">
               Câu hỏi củng cố Đề mục ${this.sectionIndex}
             </span>
-            <h2 class="text-2xl md:text-4xl font-black text-white leading-snug tracking-tight">${currentSec.question}</h2>
+            <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-white leading-snug tracking-tight">${currentSec.question}</h2>
+            <p class="text-[11px] sm:text-xs text-indigo-300 font-semibold flex items-center justify-center gap-1.5 pt-1">
+              <i data-lucide="touchpad" class="w-3.5 h-3.5"></i>
+              <span>Chạm hoặc click vào 1 phương án (A, B, C, D) bên dưới để chọn câu trả lời của bạn</span>
+            </p>
           </div>
 
-          <!-- 4 Option Cards with Live Distribution Bars -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 4 Option Cards (CLICKABLE & INTERACTIVE) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             ${currentSec.choices.map((choice, idx) => {
               const opt = optionColors[idx];
               return `
-                <div id="opt-card-${idx}" class="glass-card relative overflow-hidden p-5 md:p-6 rounded-3xl border border-slate-700/60 transition duration-300">
+                <div 
+                  id="opt-card-${idx}" 
+                  onclick="slideApp.selectOption(${idx})" 
+                  class="glass-card relative overflow-hidden p-4 sm:p-5 md:p-6 rounded-3xl border border-slate-700/60 transition duration-200 cursor-pointer hover:border-indigo-400 hover:scale-[1.01] active:scale-95 group shadow-lg">
+                  
                   <!-- Live Vote Progress Bar Fill -->
                   <div id="slide-bar-${idx}" class="absolute inset-0 ${opt.barClass} opacity-30 transition-all duration-300 ease-out" style="width: 0%;"></div>
 
-                  <div class="relative z-10 flex items-center justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                      <span class="w-11 h-11 rounded-2xl ${opt.bg} text-white font-black text-lg flex items-center justify-center shadow-lg shrink-0">
+                  <div class="relative z-10 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 sm:gap-4">
+                      <span class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${opt.bg} text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg shrink-0 group-hover:scale-105 transition">
                         ${opt.label}
                       </span>
-                      <span class="text-base md:text-lg font-bold text-white leading-snug">${choice}</span>
+                      <span class="text-sm sm:text-base font-bold text-white leading-snug">${choice}</span>
                     </div>
                     
-                    <span id="slide-vote-count-${idx}" class="text-xs font-mono font-bold text-indigo-200 bg-slate-900/80 px-2.5 py-1 rounded-xl border border-slate-700 shrink-0">
-                      0 (0%)
-                    </span>
+                    <div class="flex flex-col items-end gap-1 shrink-0">
+                      <span class="choice-tag text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
+                        Chọn
+                      </span>
+                      <span id="slide-vote-count-${idx}" class="text-[10px] font-mono text-slate-400">
+                        0 (0%)
+                      </span>
+                    </div>
                   </div>
                 </div>
               `;
             }).join("")}
           </div>
 
-          <!-- Reveal Button -->
-          <div class="text-center pt-2">
+          <!-- Reveal Button (Cho giảng viên xem đáp án không cần vote) -->
+          <div class="text-center pt-1">
             <button 
               id="reveal-btn" 
               onclick="slideApp.revealAnswer()" 
-              class="px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-3 mx-auto transition transform hover:scale-105 active:scale-95">
-              <i data-lucide="lightbulb" class="w-5 h-5 fill-white"></i>
-              <span>Xem Đáp Án Đúng & Giải Thích Chi Tiết</span>
+              class="px-6 py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto transition transform hover:scale-105 active:scale-95">
+              <i data-lucide="lightbulb" class="w-4 h-4 fill-white"></i>
+              <span>Xem Đáp Án Đúng & Giải Thích</span>
             </button>
           </div>
 
-          <!-- Explanation & Key Takeaways Card (Hidden initially, revealed on click) -->
-          <div id="explanation-box" class="hidden p-6 md:p-8 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl space-y-4 animate-fade-in">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span class="text-sm font-black uppercase text-emerald-400 flex items-center gap-2">
-                <i data-lucide="check-circle" class="w-5 h-5"></i>
-                Đáp án chính xác: Phương án ${["A", "B", "C", "D"][currentSec.correct]}
-              </span>
-              <span class="text-xs text-slate-400 font-semibold">Tóm tắt củng cố kiến thức</span>
+          <!-- Explanation & Key Takeaways Card (Revealed on click/vote) -->
+          <div id="explanation-box" class="hidden p-5 sm:p-6 md:p-8 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl space-y-3 sm:space-y-4 animate-fade-in">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div id="explain-status-header">
+                <span class="text-sm md:text-base font-black uppercase text-emerald-400 flex items-center gap-2">
+                  <i data-lucide="check-circle" class="w-5 h-5"></i>
+                  Đáp án chính xác: Phương án ${["A", "B", "C", "D"][currentSec.correct]}
+                </span>
+              </div>
+              <span class="text-[11px] text-slate-400 font-semibold hidden sm:inline">Tóm tắt củng cố bài học</span>
             </div>
 
-            <p class="text-sm md:text-base text-slate-200 leading-relaxed font-medium">${currentSec.explanation || "Chúc mừng các bạn đã nắm vững nội dung của đề mục này!"}</p>
+            <p class="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-medium">${currentSec.explanation || "Chúc mừng bạn đã nắm vững nội dung của đề mục này!"}</p>
 
             ${currentSec.keyTakeaway ? `
-              <div class="p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 text-xs md:text-sm text-indigo-200 font-bold leading-relaxed">
+              <div class="p-3.5 sm:p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 text-xs sm:text-sm text-indigo-200 font-bold leading-relaxed">
                 ${currentSec.keyTakeaway}
               </div>
             ` : ""}
@@ -374,58 +469,56 @@ class SlideController {
         </main>
 
         <!-- Bottom Bar: Section Pagination & Return to PowerPoint -->
-        <footer class="max-w-6xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800 text-xs">
+        <footer class="max-w-6xl mx-auto w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-800 text-xs">
           
-          <!-- Prev / Next Section -->
           <div class="flex items-center gap-2">
             ${hasPrev ? `
-              <a href="slide.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex - 1}" class="px-4 py-2 glass-panel hover:bg-slate-700/80 rounded-xl text-slate-200 font-bold flex items-center gap-1.5 transition">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                <span>Đề mục trước (${this.sectionIndex - 1})</span>
+              <a href="slide.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex - 1}" class="px-3.5 py-1.5 glass-panel hover:bg-slate-700/80 rounded-xl text-slate-200 font-bold flex items-center gap-1 transition">
+                <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                <span>Đề mục ${this.sectionIndex - 1}</span>
               </a>
             ` : `
-              <span class="px-4 py-2 glass-panel rounded-xl text-slate-600 font-bold opacity-50 cursor-not-allowed">Đề mục đầu tiên</span>
+              <span class="px-3 py-1.5 glass-panel rounded-xl text-slate-600 font-bold opacity-50 cursor-not-allowed">Đề mục 1</span>
             `}
 
-            <span class="px-3 py-1 font-bold text-slate-400">Đề mục ${this.sectionIndex} / ${totalSecs}</span>
+            <span class="px-2.5 py-1 font-bold text-slate-400 text-[11px]">Đề mục ${this.sectionIndex} / ${totalSecs}</span>
 
             ${hasNext ? `
-              <a href="slide.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex + 1}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 transition">
-                <span>Đề mục tiếp theo (${this.sectionIndex + 1})</span>
-                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              <a href="slide.html?lesson=${encodeURIComponent(this.lessonId)}&sec=${this.sectionIndex + 1}" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold flex items-center gap-1 shadow-lg shadow-indigo-600/30 transition">
+                <span>Đề mục ${this.sectionIndex + 1}</span>
+                <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
               </a>
             ` : `
-              <span class="px-4 py-2 glass-panel rounded-xl text-emerald-400 font-bold">🎉 Kết thúc bài giảng</span>
+              <span class="px-3 py-1.5 glass-panel rounded-xl text-emerald-400 font-bold">🎉 Hoàn thành</span>
             `}
           </div>
 
-          <!-- Quick Return Tip -->
-          <div class="flex items-center gap-3 text-slate-400">
-            <span class="hidden md:inline">Nhấn <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono text-[10px]">Alt + Tab</kbd> để quay lại PowerPoint</span>
-            <button onclick="window.close()" class="px-3 py-1.5 glass-panel hover:bg-rose-500/20 hover:border-rose-500/40 text-rose-300 rounded-xl font-semibold transition">
-              Đóng tab câu hỏi
+          <div class="flex items-center gap-3 text-slate-400 text-[11px]">
+            <span class="hidden md:inline">Nhấn <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">Alt + Tab</kbd> để quay lại PowerPoint</span>
+            <button onclick="window.close()" class="px-3 py-1 glass-panel hover:bg-rose-500/20 text-rose-300 rounded-xl font-semibold transition">
+              Đóng tab
             </button>
           </div>
         </footer>
 
-        <!-- QR Code Slide Modal (Bật/Tắt khi cần cho cả lớp quét) -->
+        <!-- QR Code Slide Modal -->
         <div id="slide-qr-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div class="glass-panel p-8 rounded-3xl max-w-sm w-full text-center space-y-5 border-indigo-500/40 animate-pop-in">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 class="text-base font-black text-white">Quét QR Để Bình Chọn</h3>
+          <div class="glass-panel p-6 sm:p-8 rounded-3xl max-w-xs sm:max-w-sm w-full text-center space-y-4 border-indigo-500/40 animate-pop-in">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 class="text-sm sm:text-base font-black text-white">Quét QR Để Bình Chọn</h3>
               <button onclick="slideApp.toggleQrModal()" class="text-slate-400 hover:text-white p-1">
-                <i data-lucide="x" class="w-5 h-5"></i>
+                <i data-lucide="x" class="w-4 h-4"></i>
               </button>
             </div>
 
-            <div class="p-4 bg-white rounded-3xl mx-auto inline-block shadow-2xl">
-              <div id="section-qrcode-box" class="w-[180px] h-[180px] flex items-center justify-center"></div>
+            <div class="p-3 bg-white rounded-2xl mx-auto inline-block shadow-2xl">
+              <div id="section-qrcode-box" class="w-[160px] h-[160px] flex items-center justify-center"></div>
             </div>
 
-            <p class="text-xs text-slate-300">Người nghe quét mã để chọn đáp án A, B, C, D trên điện thoại.</p>
+            <p class="text-[11px] text-slate-300">Quét mã bằng camera điện thoại hoặc Zalo để chọn đáp án A, B, C, D trực tiếp.</p>
 
-            <button onclick="slideApp.toggleQrModal()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white shadow-lg">
-              Đóng cửa sổ QR
+            <button onclick="slideApp.toggleQrModal()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white shadow-lg">
+              Đóng
             </button>
           </div>
         </div>
@@ -435,15 +528,14 @@ class SlideController {
 
     if (window.lucide) lucide.createIcons();
 
-    // Sinh mã QR cho modal
     setTimeout(() => {
       const qrEl = document.getElementById("section-qrcode-box");
       if (qrEl && window.QRCode) {
         qrEl.innerHTML = "";
         new QRCode(qrEl, {
           text: playerUrl,
-          width: 170,
-          height: 170,
+          width: 150,
+          height: 150,
           colorDark: "#0f172a",
           colorLight: "#ffffff",
           correctLevel: QRCode.CorrectLevel.M
@@ -467,7 +559,7 @@ class SlideController {
   toggleFullscreen() {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch((err) => {
-        console.warn("Fullscreen not supported or blocked:", err);
+        console.warn("Fullscreen not supported:", err);
       });
     } else {
       if (document.exitFullscreen) {
