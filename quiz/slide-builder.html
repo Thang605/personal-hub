@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PowerPoint Quiz Studio - Quản Lý & Xuất Link Đề Mục Nhúng Slide</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              500: '#6366f1',
+              600: '#4f46e5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Custom Quiz Styles -->
+  <link rel="stylesheet" href="css/quiz.css" />
+</head>
+<body class="bg-game-dark bg-game-glow text-white min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="max-w-6xl mx-auto w-full p-4 md:p-6 flex items-center justify-between border-b border-slate-800">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-pink-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
+        <i data-lucide="presentation" class="w-6 h-6 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-xl md:text-2xl font-black tracking-tight">POWERPOINT QUIZ STUDIO</h1>
+        <p class="text-xs text-amber-300 font-medium">Hệ thống tạo câu hỏi & Link nhúng theo từng đề mục Slide</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <a href="index.html" class="px-4 py-2 text-xs font-semibold rounded-xl glass-panel hover:bg-slate-700/80 text-slate-300 transition flex items-center gap-1.5">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+        <span>Về Quiz Hub</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-6xl mx-auto w-full p-4 md:p-6 space-y-8 flex-1">
+    
+    <!-- Top Action Row: Lesson Selector & Buttons -->
+    <div class="glass-panel p-6 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 border-indigo-500/30">
+      <div class="space-y-1">
+        <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Chọn bài giảng đang soạn thảo:</span>
+        <div class="flex items-center gap-3">
+          <select id="lesson-select" onchange="builderApp.selectLesson(this.value)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm md:text-base font-bold text-white focus:outline-hidden focus:border-indigo-500 min-w-[280px]">
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <button onclick="builderApp.openNewLessonModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          <span>Tạo Bài Giảng Mới</span>
+        </button>
+        <button onclick="builderApp.exportCurrentLesson()" class="px-4 py-2.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Xuất JSON</span>
+        </button>
+        <label class="px-4 py-2.5 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-semibold text-slate-300 flex items-center gap-1.5 cursor-pointer transition">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span>Nhập JSON</span>
+          <input type="file" accept=".json" onchange="builderApp.importLesson(event)" class="hidden" />
+        </label>
+      </div>
+    </div>
+
+    <!-- PowerPoint Link & QR Export Center (Danh sách đề mục & Link chèn Slide) -->
+    <section class="space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div>
+          <h2 class="text-xl md:text-2xl font-black text-white flex items-center gap-2.5">
+            <i data-lucide="link-2" class="w-6 h-6 text-pink-400"></i>
+            <span>Bảng Link & Mã QR Nhúng Vào PowerPoint</span>
+          </h2>
+          <p class="text-xs text-slate-400">Copy link hoặc tải ảnh QR để dán thẳng vào slide ở cuối mỗi đề mục</p>
+        </div>
+
+        <button onclick="builderApp.openAddSectionModal()" class="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-pink-600/25 transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>Thêm Đề Mục Mới Cho Bài Giảng Này</span>
+        </button>
+      </div>
+
+      <!-- Sections Cards Grid -->
+      <div id="sections-container" class="grid grid-cols-1 gap-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- PowerPoint Guide Instructions Banner -->
+    <section class="glass-card p-6 md:p-8 rounded-3xl border-indigo-500/20 space-y-4">
+      <h3 class="text-base font-extrabold text-white flex items-center gap-2">
+        <i data-lucide="help-circle" class="w-5 h-5 text-indigo-400"></i>
+        <span>Hướng Dẫn 2 Cách Chèn Câu Hỏi Vào Slide PowerPoint Cực Dễ</span>
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-300">
+        <!-- Cách 1: Chèn Link -->
+        <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-700/60 space-y-2">
+          <span class="font-black text-indigo-300 text-sm block">👉 Cách 1: Chèn Link Vào Nút Bấm / Chữ Trong Slide</span>
+          <ol class="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-400">
+            <li>Bấm nút <strong class="text-white">"Sao chép Link"</strong> của đề mục tương ứng ở trên.</li>
+            <li>Trong PowerPoint, chọn một hình khối (Shape / Nút bấm) hoặc dòng chữ: <em>"Kiểm tra kiến thức Đề mục 1"</em>.</li>
+            <li>Nhấn phím tắt <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-200 font-mono">Ctrl + K</kbd> (hoặc chuột phải chọn <em>Link / Hyperlink</em>).</li>
+            <li>Dán link vừa copy vào ô <strong>Address</strong> ➔ Nhấn <strong>OK</strong>.</li>
+            <li>Khi đang chiếu slide (F5), click vào nút bấm đó là câu hỏi sẽ mở ra toàn màn hình!</li>
+          </ol>
+        </div>
+
+        <!-- Cách 2: Chèn Ảnh QR -->
+        <div class="p-4 bg-slate-900/80 rounded-2xl border border-slate-700/60 space-y-2">
+          <span class="font-black text-pink-300 text-sm block">📱 Cách 2: Chèn Hình Ảnh Mã QR Vào Góc Slide</span>
+          <ol class="list-decimal list-inside space-y-1.5 leading-relaxed text-slate-400">
+            <li>Bấm nút <strong class="text-white">"Tải Ảnh QR Code"</strong> của đề mục tương ứng ở trên.</li>
+            <li>Trong PowerPoint, chọn <strong>Insert ➔ Pictures ➔ This Device</strong> và chọn file ảnh QR vừa tải về.</li>
+            <li>Đặt mã QR vào góc dưới slide để học viên quét bằng camera điện thoại và trả lời trực tiếp.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Container for Adding/Editing -->
+  <div id="builder-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-msg" class="fixed bottom-6 right-6 z-50 hidden px-4 py-3 bg-emerald-600 text-white font-bold rounded-2xl shadow-2xl flex items-center gap-2 text-xs transition duration-300">
+    <i data-lucide="check-circle" class="w-4 h-4"></i>
+    <span id="toast-text">Đã sao chép đường link!</span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="max-w-6xl mx-auto w-full p-4 text-center text-xs text-slate-500 border-t border-slate-800">
+    Personal Hub - PowerPoint Slide Quiz System • Tương thích với Microsoft PowerPoint, Google Slides, Canva & Keynote.
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/sound-effects.js"></script>
+  <script src="js/slide-data.js"></script>
+
+  <script>
+    class SlideBuilderApp {
+      constructor() {
+        this.currentLessonId = null;
+        this.currentLesson = null;
+      }
+
+      init() {
+        this.renderLessonSelector();
+      }
+
+      renderLessonSelector() {
+        const lessons = window.slideDataManager.getAll();
+        const select = document.getElementById("lesson-select");
+        if (!select) return;
+
+        if (!this.currentLessonId && lessons.length > 0) {
+          this.currentLessonId = lessons[0].id;
+        }
+
+        select.innerHTML = lessons.map(l => `
+          <option value="${l.id}" ${l.id === this.currentLessonId ? 'selected' : ''}>
+            ${l.title} (${l.sections.length} đề mục)
+          </option>
+        `).join("");
+
+        this.selectLesson(this.currentLessonId);
+      }
+
+      selectLesson(id) {
+        this.currentLessonId = id;
+        this.currentLesson = window.slideDataManager.getById(id);
+        this.renderSectionsList();
+      }
+
+      renderSectionsList() {
+        const container = document.getElementById("sections-container");
+        if (!container || !this.currentLesson) return;
+
+        const sections = this.currentLesson.sections || [];
+
+        if (sections.length === 0) {
+          container.innerHTML = `
+            <div class="glass-panel p-8 rounded-3xl text-center text-slate-400 space-y-3">
+              <i data-lucide="help-circle" class="w-10 h-10 text-indigo-400 mx-auto"></i>
+              <p class="text-sm font-bold">Bài giảng này chưa có đề mục nào.</p>
+              <button onclick="builderApp.openAddSectionModal()" class="px-4 py-2 bg-indigo-600 rounded-xl text-xs font-bold text-white">Thêm Đề Mục Đầu Tiên</button>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        // Tạo URL base
+        const isGitHub = window.location.hostname.includes("github.io");
+        const origin = window.location.origin;
+        const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf("/"));
+
+        container.innerHTML = sections.map((sec, idx) => {
+          // Link online và local
+          const embedUrl = `${origin}${path}/slide.html?lesson=${encodeURIComponent(this.currentLesson.id)}&sec=${sec.sectionIndex}`;
+          const qrId = `qr-canvas-${sec.sectionIndex}`;
+
+          return `
+            <div class="glass-panel p-6 rounded-3xl border border-slate-700/60 hover:border-indigo-500/40 transition duration-200 space-y-5">
+              
+              <!-- Section Header & Controls -->
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+                <div class="flex items-center gap-3">
+                  <span class="w-9 h-9 rounded-2xl bg-indigo-600/30 border border-indigo-400/40 text-indigo-300 font-black text-sm flex items-center justify-center">
+                    #${sec.sectionIndex}
+                  </span>
+                  <div>
+                    <h3 class="text-base font-extrabold text-white">${sec.sectionTitle}</h3>
+                    <p class="text-xs text-slate-400 font-medium">Thời gian: ${sec.time || 20}s • Đáp án đúng: Phương án ${["A", "B", "C", "D"][sec.correct]}</p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <a href="slide.html?lesson=${encodeURIComponent(this.currentLesson.id)}&sec=${sec.sectionIndex}" target="_blank" class="px-3.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i data-lucide="play" class="w-3.5 h-3.5 fill-emerald-300"></i>
+                    <span>Chiếu Thử</span>
+                  </a>
+                  <button onclick="builderApp.deleteSection(${sec.sectionIndex})" class="p-2 text-slate-400 hover:text-rose-400 transition" title="Xóa đề mục này">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Question Preview -->
+              <div class="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-2">
+                <span class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">Nội dung câu hỏi:</span>
+                <p class="text-sm font-bold text-slate-200">${sec.question}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-400 pt-1">
+                  ${sec.choices.map((c, cIdx) => `
+                    <div class="px-3 py-1.5 rounded-lg ${cIdx === sec.correct ? 'bg-emerald-950/40 text-emerald-300 font-bold border border-emerald-500/30' : 'bg-slate-800/40'} truncate">
+                      ${["A", "B", "C", "D"][cIdx]}. ${c}
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+
+              <!-- PowerPoint Embed Link & QR Action Box -->
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-slate-900/90 p-4 rounded-2xl border border-indigo-500/30">
+                
+                <!-- Left: Link input -->
+                <div class="md:col-span-8 space-y-1.5">
+                  <label class="text-[11px] font-black text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="link" class="w-3.5 h-3.5 text-pink-400"></i>
+                    <span>Link nhúng trực tiếp vào Slide PowerPoint:</span>
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input 
+                      type="text" 
+                      readonly 
+                      value="${embedUrl}" 
+                      id="input-link-${sec.sectionIndex}" 
+                      class="flex-1 px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-indigo-300 font-mono select-all focus:outline-hidden" />
+                    <button 
+                      onclick="builderApp.copyLink('input-link-${sec.sectionIndex}')" 
+                      class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow flex items-center gap-1.5 shrink-0 transition active:scale-95">
+                      <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                      <span>Sao Chép</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Right: QR Code Download -->
+                <div class="md:col-span-4 flex items-center justify-end gap-3 pt-2 md:pt-0">
+                  <div id="${qrId}" class="p-1.5 bg-white rounded-xl shadow shrink-0 hidden"></div>
+                  <button 
+                    onclick="builderApp.downloadQrImage('${embedUrl}', 'QR_DeMuc_${sec.sectionIndex}_${this.currentLesson.title.substring(0, 15)}')" 
+                    class="w-full sm:w-auto px-4 py-2 glass-panel hover:bg-slate-700/80 rounded-xl text-xs font-bold text-slate-200 flex items-center justify-center gap-2 transition">
+                    <i data-lucide="download" class="w-4 h-4 text-pink-400"></i>
+                    <span>Tải Ảnh QR Cho Slide</span>
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+          `;
+        }).join("");
+
+        if (window.lucide) lucide.createIcons();
+      }
+
+      copyLink(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        navigator.clipboard.writeText(input.value);
+
+        const toast = document.getElementById("toast-msg");
+        if (toast) {
+          toast.classList.remove("hidden");
+          setTimeout(() => toast.classList.add("hidden"), 2500);
+        }
+      }
+
+      downloadQrImage(textUrl, fileName) {
+        // Tạo canvas tạm để xuất ảnh QR nét cao
+        const tempDiv = document.createElement("div");
+        new QRCode(tempDiv, {
+          text: textUrl,
+          width: 400,
+          height: 400,
+          colorDark: "#0f172a",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.H
+        });
+
+        setTimeout(() => {
+          const img = tempDiv.querySelector("img");
+          const canvas = tempDiv.querySelector("canvas");
+          let dataUrl = "";
+          if (canvas) {
+            dataUrl = canvas.toDataURL("image/png");
+          } else if (img) {
+            dataUrl = img.src;
+          }
+
+          if (dataUrl) {
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = `${fileName}.png`;
+            a.click();
+          }
+        }, 150);
+      }
+
+      openNewLessonModal() {
+        const modal = document.getElementById("builder-modal");
+        if (!modal) return;
+
+        modal.classList.remove("hidden");
+        modal.innerHTML = `
+          <div class="glass-panel bg-slate-900 border border-slate-700 w-full max-w-lg rounded-3xl p-6 space-y-5 text-white animate-pop-in">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-lg font-black">Tạo Bài Giảng Mới</h3>
+              <button onclick="document.getElementById('builder-modal').classList.add('hidden')" class="text-slate-400 hover:text-white p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+              </button>
+            </div>
+
+            <form onsubmit="builderApp.saveNewLesson(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Tên bài giảng / Chủ đề thuyết trình</label>
+                <input type="text" id="new-lesson-title" required placeholder="Ví dụ: Kỹ Năng Đàm Phán Kinh Doanh" class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Mô tả bài giảng</label>
+                <input type="text" id="new-lesson-desc" placeholder="Ví dụ: Bài giảng 3 phần về chiến lược đàm phán..." class="w-full px-4 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white focus:outline-hidden focus:border-indigo-500" />
+              </div>
+
+              <div class="flex items-center justify-end gap-3 pt-3">
+                <button type="button" onclick="document.getElementById('builder-modal').classList.add('hidden')" class="px-4 py-2 text-xs font-bold text-slate-400">Hủy</button>
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-600/30">Tạo Ngay</button>
+              </div>
+            </form>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      saveNewLesson(e) {
+        e.preventDefault();
+        const title = document.getElementById("new-lesson-title").value.trim();
+        const desc = document.getElementById("new-lesson-desc").value.trim();
+
+        if (!title) return;
+
+        const newLesson = window.slideDataManager.saveLesson({
+          title: title,
+          description: desc,
+          sections: [
+            {
+              sectionIndex: 1,
+              sectionTitle: "Đề mục 1: Nội dung giới thiệu ban đầu",
+              question: "Câu hỏi kiểm tra nhanh sau khi kết thúc đề mục 1 là gì?",
+              choices: ["Phương án A", "Phương án B chính xác", "Phương án C", "Phương án D"],
+              correct: 1,
+              time: 20,
+              explanation: "Giải thích chi tiết vì sao phương án B là chính xác...",
+              keyTakeaway: "📌 ĐIỂM CỐT LÕI: Tóm tắt điểm quan trọng cần nhớ..."
+            }
+          ]
+        });
+
+        document.getElementById("builder-modal").classList.add("hidden");
+        this.currentLessonId = newLesson.id;
+        this.renderLessonSelector();
+      }
+
+      openAddSectionModal() {
+        if (!this.currentLesson) return;
+        const modal = document.getElementById("builder-modal");
+        if (!modal) return;
+
+        const nextIndex = (this.currentLesson.sections || []).length + 1;
+
+        modal.classList.remove("hidden");
+        modal.innerHTML = `
+          <div class="glass-panel bg-slate-900 border border-slate-700 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl p-6 space-y-5 text-white animate-pop-in">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 class="text-lg font-black">Thêm Đề Mục & Câu Hỏi (Đề mục ${nextIndex})</h3>
+              <button onclick="document.getElementById('builder-modal').classList.add('hidden')" class="text-slate-400 hover:text-white p-1">
+                <i data-lucide="x" class="w-5 h-5"></i>
+              </button>
+            </div>
+
+            <form onsubmit="builderApp.saveNewSection(event, ${nextIndex})" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Tên đề mục</label>
+                <input type="text" id="sec-title" required value="Đề mục ${nextIndex}: " class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Nội dung câu hỏi trắc nghiệm</label>
+                <textarea id="sec-question" required rows="2" placeholder="Ví dụ: Đâu là nguyên tắc cốt lõi của đề mục này?..." class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white"></textarea>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label class="block text-[11px] font-bold text-red-400 mb-1">Phương án A (Đỏ)</label>
+                  <input type="text" id="opt-0" required placeholder="Đáp án A..." class="w-full px-3 py-1.5 bg-red-950/40 border border-red-500/40 rounded-lg text-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-blue-400 mb-1">Phương án B (Xanh)</label>
+                  <input type="text" id="opt-1" required placeholder="Đáp án B..." class="w-full px-3 py-1.5 bg-blue-950/40 border border-blue-500/40 rounded-lg text-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-amber-400 mb-1">Phương án C (Vàng)</label>
+                  <input type="text" id="opt-2" required placeholder="Đáp án C..." class="w-full px-3 py-1.5 bg-amber-950/40 border border-amber-500/40 rounded-lg text-white" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-emerald-400 mb-1">Phương án D (Xanh lá)</label>
+                  <input type="text" id="opt-3" required placeholder="Đáp án D..." class="w-full px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-white" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <label class="block text-[11px] font-bold text-emerald-400 mb-1">Đáp án chính xác:</label>
+                  <select id="sec-correct" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-emerald-400 font-bold">
+                    <option value="0">Phương án A</option>
+                    <option value="1" selected>Phương án B</option>
+                    <option value="2">Phương án C</option>
+                    <option value="3">Phương án D</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-300 mb-1">Thời gian đếm ngược:</label>
+                  <select id="sec-time" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white">
+                    <option value="15">15 giây</option>
+                    <option value="20" selected>20 giây</option>
+                    <option value="30">30 giây</option>
+                    <option value="60">60 giây</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-slate-300 mb-1">Lời giải thích chi tiết</label>
+                <input type="text" id="sec-explain" placeholder="Giải thích vì sao đáp án đó là đúng..." class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-indigo-300 mb-1">Điểm cốt lõi cần nhớ (Key Takeaway)</label>
+                <input type="text" id="sec-takeaway" placeholder="Ví dụ: 📌 ĐIỂM CỐT LÕI: Luôn ghi nhớ 3 nguyên tắc..." class="w-full px-3.5 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white" />
+              </div>
+
+              <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button type="button" onclick="document.getElementById('builder-modal').classList.add('hidden')" class="px-4 py-2 text-xs font-bold text-slate-400">Hủy</button>
+                <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-indigo-600/30">Lưu Đề Mục</button>
+              </div>
+            </form>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+
+      saveNewSection(e, secIndex) {
+        e.preventDefault();
+        const title = document.getElementById("sec-title").value.trim();
+        const q = document.getElementById("sec-question").value.trim();
+        const opt0 = document.getElementById("opt-0").value.trim();
+        const opt1 = document.getElementById("opt-1").value.trim();
+        const opt2 = document.getElementById("opt-2").value.trim();
+        const opt3 = document.getElementById("opt-3").value.trim();
+        const correct = Number(document.getElementById("sec-correct").value);
+        const time = Number(document.getElementById("sec-time").value);
+        const explain = document.getElementById("sec-explain").value.trim();
+        const takeaway = document.getElementById("sec-takeaway").value.trim();
+
+        if (!title || !q || !opt0 || !opt1) return;
+
+        this.currentLesson.sections.push({
+          sectionIndex: secIndex,
+          sectionTitle: title,
+          question: q,
+          choices: [opt0, opt1, opt2 || "Đáp án C", opt3 || "Đáp án D"],
+          correct: correct,
+          time: time,
+          explanation: explain,
+          keyTakeaway: takeaway
+        });
+
+        window.slideDataManager.saveLesson(this.currentLesson);
+        document.getElementById("builder-modal").classList.add("hidden");
+        this.renderSectionsList();
+      }
+
+      deleteSection(secIndex) {
+        if (!confirm(`Bạn có chắc muốn xóa Đề mục ${secIndex}?`)) return;
+        this.currentLesson.sections = this.currentLesson.sections.filter(s => s.sectionIndex !== secIndex);
+        // Đánh lại số thứ tự
+        this.currentLesson.sections.forEach((s, idx) => s.sectionIndex = idx + 1);
+        window.slideDataManager.saveLesson(this.currentLesson);
+        this.renderSectionsList();
+      }
+
+      exportCurrentLesson() {
+        if (this.currentLessonId) {
+          window.slideDataManager.exportToJson(this.currentLessonId);
+        }
+      }
+
+      importLesson(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const ok = window.slideDataManager.importFromJson(evt.target.result);
+          if (ok) {
+            this.renderLessonSelector();
+          } else {
+            alert("File JSON không hợp lệ!");
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    window.builderApp = new SlideBuilderApp();
+    document.addEventListener("DOMContentLoaded", () => window.builderApp.init());
+  </script>
+</body>
+</html>

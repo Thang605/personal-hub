@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bình Chọn Trực Tiếp - Slide Checkpoint</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              500: '#6366f1',
+              600: '#4f46e5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- PeerJS for WebRTC Real-time P2P -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <!-- Custom Quiz Styles -->
+  <link rel="stylesheet" href="css/quiz.css" />
+</head>
+<body class="bg-game-dark bg-game-glow text-white min-h-screen flex flex-col justify-between p-3 sm:p-4 select-none">
+
+  <!-- Main Container -->
+  <div id="slide-player-root" class="max-w-lg mx-auto w-full flex-1 flex flex-col justify-between"></div>
+
+  <!-- Scripts -->
+  <script src="js/sound-effects.js"></script>
+  <script src="js/peer-network.js"></script>
+  <script src="js/slide-data.js"></script>
+
+  <script>
+    class SlidePlayer {
+      constructor() {
+        this.lessonId = null;
+        this.sectionIndex = 1;
+        this.lesson = null;
+        this.section = null;
+        this.myVote = null;
+        this.network = null;
+        this.playerId = "att_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 6);
+      }
+
+      init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.lessonId = urlParams.get("lesson") || "bai_giang_ai_2026";
+        this.sectionIndex = Number(urlParams.get("sec") || 1);
+
+        this.lesson = window.slideDataManager.getById(this.lessonId) || window.slideDataManager.getAll()[0];
+        if (this.lesson) {
+          this.section = window.slideDataManager.getSection(this.lessonId, this.sectionIndex);
+        }
+
+        if (!this.section) {
+          document.getElementById("slide-player-root").innerHTML = `
+            <div class="my-auto text-center p-6 glass-panel rounded-3xl space-y-3">
+              <i data-lucide="alert-circle" class="w-10 h-10 text-amber-400 mx-auto"></i>
+              <h3 class="text-base font-bold">Không tìm thấy câu hỏi</h3>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        const pin = "sec_" + this.lessonId + "_" + this.sectionIndex;
+        this.network = new PeerNetwork();
+        this.network.initPlayer(pin, { id: this.playerId, name: "Khán giả" });
+
+        this.network.on("time_up", (data) => {
+          this.handleResult(data);
+        });
+
+        this.renderQuestion();
+      }
+
+      renderQuestion() {
+        const root = document.getElementById("slide-player-root");
+        const sec = this.section;
+
+        root.innerHTML = `
+          <!-- Header -->
+          <header class="space-y-1 text-center pt-2">
+            <span class="px-3 py-1 rounded-full text-[11px] font-black bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 inline-block">
+              ${this.lesson.title}
+            </span>
+            <h2 class="text-xs text-slate-400 font-bold">${sec.sectionTitle}</h2>
+          </header>
+
+          <!-- Question Content -->
+          <div class="glass-panel p-5 rounded-2xl my-3 text-center">
+            <p class="text-sm sm:text-base font-extrabold text-white leading-relaxed">${sec.question}</p>
+          </div>
+
+          <!-- 4 Buttons -->
+          <main class="grid grid-cols-2 gap-3 my-auto py-2">
+            <button id="btn-0" onclick="slidePlayer.vote(0)" class="btn-choice-a h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white">
+              <span class="text-xl font-black mb-1">▲</span>
+              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[0]}</span>
+            </button>
+            <button id="btn-1" onclick="slidePlayer.vote(1)" class="btn-choice-b h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white">
+              <span class="text-xl font-black mb-1">◆</span>
+              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[1]}</span>
+            </button>
+            <button id="btn-2" onclick="slidePlayer.vote(2)" class="btn-choice-c h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-amber-950">
+              <span class="text-xl font-black mb-1">●</span>
+              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[2]}</span>
+            </button>
+            <button id="btn-3" onclick="slidePlayer.vote(3)" class="btn-choice-d h-28 sm:h-36 rounded-2xl p-2.5 flex flex-col items-center justify-center text-white">
+              <span class="text-xl font-black mb-1">■</span>
+              <span class="text-xs font-bold text-center line-clamp-3">${sec.choices[3]}</span>
+            </button>
+          </main>
+
+          <!-- Footer Status -->
+          <footer id="player-status-bar" class="text-center text-xs text-slate-400 pb-2">
+            Chạm vào 1 phương án để gửi bình chọn
+          </footer>
+        `;
+
+        if (window.lucide) lucide.createIcons();
+      }
+
+      vote(idx) {
+        if (this.myVote !== null) return;
+        this.myVote = idx;
+
+        if (navigator.vibrate) navigator.vibrate(30);
+        window.soundEffects.playClick();
+
+        if (this.network) {
+          this.network.sendToHost({
+            type: "LIVE_VOTE",
+            playerId: this.playerId,
+            choiceIndex: idx,
+            timestamp: Date.now()
+          });
+        }
+
+        for (let i = 0; i < 4; i++) {
+          const btn = document.getElementById(`btn-${i}`);
+          if (btn) {
+            if (i === idx) {
+              btn.classList.add("ring-4", "ring-white", "scale-105");
+            } else {
+              btn.classList.add("opacity-30", "grayscale-[60%]");
+              btn.disabled = true;
+            }
+          }
+        }
+
+        const bar = document.getElementById("player-status-bar");
+        if (bar) {
+          bar.innerHTML = `
+            <span class="text-emerald-400 font-bold flex items-center justify-center gap-1.5 animate-pulse">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+              Đã gửi bình chọn! Đang chờ Giảng viên công bố đáp án...
+            </span>
+          `;
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+
+      handleResult(data) {
+        const correctIdx = data.correctIndex;
+        const isCorrect = this.myVote === correctIdx;
+        const root = document.getElementById("slide-player-root");
+
+        if (isCorrect) {
+          window.soundEffects.playCorrect();
+        } else {
+          window.soundEffects.playWrong();
+        }
+
+        root.innerHTML = `
+          <div class="my-auto text-center space-y-5 p-6 glass-panel rounded-3xl border-2 ${isCorrect ? 'border-emerald-500 bg-emerald-950/40' : 'border-rose-500 bg-rose-950/40'}">
+            <div class="text-6xl animate-bounce">${isCorrect ? '🎉' : '😢'}</div>
+            <div>
+              <h2 class="text-2xl font-black ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">
+                ${isCorrect ? 'CHÍNH XÁC!' : 'CHƯA ĐÚNG RỒI!'}
+              </h2>
+              <p class="text-xs text-slate-300 mt-1">Đáp án đúng là: Phương án ${["A", "B", "C", "D"][correctIdx]}</p>
+            </div>
+
+            ${data.explanation ? `
+              <div class="p-4 bg-slate-900/90 rounded-2xl text-left text-xs text-slate-300 leading-relaxed border border-slate-700">
+                <span class="font-bold text-indigo-300 block mb-1">💡 Giải thích:</span>
+                ${data.explanation}
+              </div>
+            ` : ""}
+
+            ${data.keyTakeaway ? `
+              <div class="p-3.5 bg-indigo-950/80 rounded-2xl text-left text-xs text-indigo-200 font-bold leading-relaxed border border-indigo-500/40">
+                ${data.keyTakeaway}
+              </div>
+            ` : ""}
+          </div>
+          <footer class="text-center text-xs text-slate-500 pb-2">
+            Hãy nhìn lên màn hình giảng viên để tiếp tục bài giảng
+          </footer>
+        `;
+        if (window.lucide) lucide.createIcons();
+      }
+    }
+
+    window.slidePlayer = new SlidePlayer();
+    document.addEventListener("DOMContentLoaded", () => window.slidePlayer.init());
+  </script>
+</body>
+</html>

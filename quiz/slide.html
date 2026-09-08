@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PowerPoint Slide Quiz - Câu Hỏi Tương Tác Theo Đề Mục</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              500: '#6366f1',
+              600: '#4f46e5'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- QRCode.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- PeerJS for WebRTC Real-time Live Voting -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <!-- Canvas Confetti for Celebration -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Quiz Styles -->
+  <link rel="stylesheet" href="css/quiz.css" />
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- Main Slide App Root Container -->
+  <div id="slide-app"></div>
+
+  <!-- Scripts -->
+  <script src="js/sound-effects.js"></script>
+  <script src="js/peer-network.js"></script>
+  <script src="js/slide-data.js"></script>
+  <script src="js/slide-controller.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.slideApp) {
+        window.slideApp.init();
+      }
+    });
+  </script>
+</body>
+</html>
