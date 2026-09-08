@@ -1,6 +1,6 @@
 /**
  * Slide Presentation Controller (Màn Hình Chiếu Câu Hỏi Theo Đề Mục Slide)
- * Tương thích 100% với Zalo WebView, Facebook Browser, Safari và Chrome Mobile.
+ * Tích hợp Bảng Thống Kê Số Người Làm Đúng / Sai Trực Tiếp Theo Thời Gian Thực Cho Giáo Viên.
  */
 
 class SlideController {
@@ -90,7 +90,7 @@ class SlideController {
         });
       }
     } catch (e) {
-      console.warn("P2P Network unavailable in this webview:", e);
+      console.warn("P2P Network unavailable:", e);
     }
   }
 
@@ -158,12 +158,26 @@ class SlideController {
     }
   }
 
+  // =========================================================================
+  // CẬP NHẬT THỐNG KÊ SỐ NGƯỜI LÀM ĐÚNG / SAI CHO GIÁO VIÊN
+  // =========================================================================
   updateLiveVotesDisplay() {
-    const badge = document.getElementById("live-voters-badge");
-    if (badge) {
-      badge.textContent = `${this.votedCount} lượt bình chọn`;
-    }
+    const correctIdx = this.section.correct;
+    const correctVotes = this.liveVotes[correctIdx] || 0;
+    const wrongVotes = Math.max(0, this.votedCount - correctVotes);
+    const correctPct = this.votedCount > 0 ? Math.round((correctVotes / this.votedCount) * 100) : 0;
+    const wrongPct = this.votedCount > 0 ? (100 - correctPct) : 0;
 
+    // 1. Cập nhật các badge thống kê trên thanh điều khiển của Giáo viên
+    const totalEl = document.getElementById("teacher-stat-total");
+    const correctEl = document.getElementById("teacher-stat-correct");
+    const wrongEl = document.getElementById("teacher-stat-wrong");
+
+    if (totalEl) totalEl.textContent = `${this.votedCount} người`;
+    if (correctEl) correctEl.textContent = `Đúng: ${correctVotes} (${correctPct}%)`;
+    if (wrongEl) wrongEl.textContent = `Chưa đúng: ${wrongVotes} (${wrongPct}%)`;
+
+    // 2. Cập nhật số liệu trên từng ô A, B, C, D
     for (let i = 0; i < 4; i++) {
       const bar = document.getElementById(`slide-bar-${i}`);
       const countLabel = document.getElementById(`slide-vote-count-${i}`);
@@ -173,10 +187,60 @@ class SlideController {
       if (bar) bar.style.width = `${pct}%`;
       if (countLabel) countLabel.textContent = `${votes} (${pct}%)`;
     }
+
+    // 3. Cập nhật báo cáo tổng kết trong khung giải thích
+    this.updateClassAnalyticsBox(correctVotes, wrongVotes, correctPct);
+  }
+
+  updateClassAnalyticsBox(correctVotes, wrongVotes, correctPct) {
+    const analyticsBox = document.getElementById("class-analytics-content");
+    if (!analyticsBox) return;
+
+    let evaluationText = "";
+    let evalColor = "text-emerald-400";
+    let evalBg = "bg-emerald-950/60 border-emerald-500/40";
+
+    if (this.votedCount === 0) {
+      evaluationText = "Chưa có lượt bình chọn nào từ học viên.";
+      evalColor = "text-slate-400";
+      evalBg = "bg-slate-800/60 border-slate-700";
+    } else if (correctPct >= 80) {
+      evaluationText = `🌟 <strong>Lớp tiếp thu xuất sắc (${correctPct}% làm đúng)</strong>: Toàn bộ lớp đã nắm rất chắc kiến thức trọng tâm của đề mục này!`;
+      evalColor = "text-emerald-300";
+      evalBg = "bg-emerald-950/60 border-emerald-500/40";
+    } else if (correctPct >= 50) {
+      evaluationText = `👍 <strong>Lớp nắm bài ở mức khá (${correctPct}% làm đúng)</strong>: Đa số đã hiểu bài. Giáo viên có thể nhắc lại điểm cốt lõi cho ${wrongVotes} bạn còn nhầm lẫn.`;
+      evalColor = "text-amber-300";
+      evalBg = "bg-amber-950/60 border-amber-500/40";
+    } else {
+      evaluationText = `💡 <strong>Cần lưu ý (${correctPct}% làm đúng)</strong>: Có ${wrongVotes} học viên chưa chọn đúng. Giáo viên nên dành 1-2 phút giải thích lại cơ chế của đề mục này.`;
+      evalColor = "text-rose-300";
+      evalBg = "bg-rose-950/60 border-rose-500/40";
+    }
+
+    analyticsBox.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3">
+        <div class="p-3 bg-slate-800/80 rounded-2xl border border-slate-700">
+          <span class="text-[11px] text-slate-400 font-bold block uppercase">Tổng số học viên làm</span>
+          <span class="text-xl font-black text-white font-mono">${this.votedCount}</span>
+        </div>
+        <div class="p-3 bg-emerald-950/70 rounded-2xl border border-emerald-500/50">
+          <span class="text-[11px] text-emerald-300 font-bold block uppercase">Số người làm ĐÚNG</span>
+          <span class="text-xl font-black text-emerald-400 font-mono">${correctVotes} <span class="text-xs">(${correctPct}%)</span></span>
+        </div>
+        <div class="p-3 bg-rose-950/70 rounded-2xl border border-rose-500/50">
+          <span class="text-[11px] text-rose-300 font-bold block uppercase">Số người làm SAI</span>
+          <span class="text-xl font-black text-rose-400 font-mono">${wrongVotes} <span class="text-xs">(${100 - correctPct}%)</span></span>
+        </div>
+      </div>
+      <div class="p-3 rounded-2xl border text-xs leading-relaxed ${evalBg} ${evalColor}">
+        ${evaluationText}
+      </div>
+    `;
   }
 
   // =========================================================================
-  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP (TƯƠNG THÍCH ZALO, CHROME, SAFARI)
+  // CHẠM CHỌN ĐÁP ÁN TRỰC TIẾP
   // =========================================================================
   selectOption(idx) {
     if (this.mySelectedOption !== null) return;
@@ -186,19 +250,16 @@ class SlideController {
     const correctIdx = this.section.correct;
     const isCorrect = idx === correctIdx;
 
-    // Rung phản hồi nếu hỗ trợ
     try {
       if (navigator && navigator.vibrate) {
         navigator.vibrate(isCorrect ? [40, 60, 40] : [100]);
       }
     } catch (e) {}
 
-    // Ghi nhận lượt bình chọn
     this.liveVotes[idx]++;
     this.votedCount++;
     this.updateLiveVotesDisplay();
 
-    // Phát âm thanh
     try {
       if (isCorrect) {
         window.soundEffects.playCorrect();
@@ -207,14 +268,12 @@ class SlideController {
       }
     } catch (e) {}
 
-    // Pháo hoa nếu trả lời đúng
     try {
       if (isCorrect && window.confetti) {
         window.confetti({ particleCount: 80, spread: 70, origin: { y: 0.7 } });
       }
     } catch (e) {}
 
-    // Cập nhật giao diện các thẻ nút bấm
     for (let i = 0; i < 4; i++) {
       const card = document.getElementById(`opt-card-${i}`);
       if (card) {
@@ -233,7 +292,6 @@ class SlideController {
       }
     }
 
-    // Hiển thị khung giải thích & Key Takeaway
     const explainBox = document.getElementById("explanation-box");
     if (explainBox) {
       explainBox.classList.remove("hidden");
@@ -323,6 +381,8 @@ class SlideController {
       revealBtn.classList.add("hidden");
     }
 
+    this.updateLiveVotesDisplay();
+
     if (window.lucide) {
       try { lucide.createIcons(); } catch (e) {}
     }
@@ -354,15 +414,6 @@ class SlideController {
     container.innerHTML = `
       <div class="min-h-screen flex flex-col justify-between p-3 sm:p-6 md:p-8 bg-game-dark bg-game-glow text-white">
         
-        <!-- Zalo In-App Browser Compatibility Banner -->
-        ${this.isZalo ? `
-          <div class="max-w-6xl mx-auto w-full mb-2 p-2.5 bg-indigo-900/90 border border-indigo-400/50 rounded-2xl flex items-center justify-between text-xs text-indigo-100">
-            <span class="flex items-center gap-1.5 font-bold">
-              <span>📱</span> Bạn đang mở trong Zalo. Hãy chạm vào 1 trong 4 ô màu bên dưới để chọn đáp án!
-            </span>
-          </div>
-        ` : ''}
-
         <!-- Top Bar: Navigation & Slide Context -->
         <header class="max-w-6xl mx-auto w-full flex items-center justify-between gap-4 border-b border-slate-800 pb-3">
           <div class="flex items-center gap-3">
@@ -390,32 +441,45 @@ class SlideController {
         <!-- Main Question Presentation Area -->
         <main class="max-w-6xl mx-auto w-full my-auto py-3 space-y-4 sm:space-y-6">
           
-          <!-- Timer Bar & Status Row -->
-          <div class="space-y-1.5">
-            <div class="w-full bg-slate-800/80 h-2.5 sm:h-3 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
-              <div id="slide-timer-progress" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
+          <!-- TEACHER LIVE DASHBOARD BAR: THỐNG KÊ ĐÚNG / SAI TRỰC TIẾP -->
+          <div class="glass-panel p-3 sm:p-4 rounded-2xl border border-indigo-500/30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-black text-indigo-300 uppercase flex items-center gap-1.5">
+                <i data-lucide="bar-chart-2" class="w-4 h-4 text-pink-400"></i>
+                <span>Thống kê kết quả:</span>
+              </span>
             </div>
-            
-            <div class="flex items-center justify-between text-xs font-bold text-slate-400 px-1">
-              <div class="flex items-center gap-3">
-                <span class="flex items-center gap-1 text-amber-400 font-mono text-sm sm:text-base font-black">
-                  <i data-lucide="timer" class="w-4 h-4"></i>
-                  <span id="slide-timer-num">${this.timeRemaining}</span>s
-                </span>
-                <button type="button" onclick="slideApp.togglePauseTimer()" class="hover:text-white p-1" title="Tạm dừng / Đếm tiếp">
-                  <i id="pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
-                </button>
-                <button type="button" onclick="slideApp.resetTimer()" class="hover:text-white p-1" title="Đếm lại từ đầu">
-                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-                </button>
-              </div>
 
-              <div class="flex items-center gap-2">
-                <span id="live-voters-badge" class="text-indigo-300 bg-indigo-500/10 px-2.5 py-0.5 rounded-xl border border-indigo-500/20 text-[10px] sm:text-xs">
-                  0 lượt bình chọn
-                </span>
-              </div>
+            <div class="flex flex-wrap items-center gap-2 text-xs font-bold font-mono">
+              <span class="px-3 py-1 bg-slate-800/90 text-slate-200 rounded-xl border border-slate-700">
+                👥 <span id="teacher-stat-total">0 người</span>
+              </span>
+              <span class="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-xl border border-emerald-500/40">
+                ✅ <span id="teacher-stat-correct">Đúng: 0 (0%)</span>
+              </span>
+              <span class="px-3 py-1 bg-rose-500/20 text-rose-300 rounded-xl border border-rose-500/40">
+                ❌ <span id="teacher-stat-wrong">Chưa đúng: 0 (0%)</span>
+              </span>
             </div>
+
+            <!-- Timer info -->
+            <div class="flex items-center gap-2">
+              <span class="flex items-center gap-1 text-amber-400 font-mono text-xs sm:text-sm font-black">
+                <i data-lucide="timer" class="w-3.5 h-3.5"></i>
+                <span id="slide-timer-num">${this.timeRemaining}</span>s
+              </span>
+              <button type="button" onclick="slideApp.togglePauseTimer()" class="p-1 hover:text-white" title="Tạm dừng/Tiếp tục">
+                <i id="pause-icon" data-lucide="pause" class="w-3.5 h-3.5"></i>
+              </button>
+              <button type="button" onclick="slideApp.resetTimer()" class="p-1 hover:text-white" title="Đếm lại">
+                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Timer Bar -->
+          <div class="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/60">
+            <div id="slide-timer-progress" class="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full transition-all duration-1000 ease-linear" style="width: 100%;"></div>
           </div>
 
           <!-- Question Card -->
@@ -429,7 +493,7 @@ class SlideController {
             </p>
           </div>
 
-          <!-- 4 Native BUTTON Option Cards (100% Mobile & Zalo Touch Sensitive) -->
+          <!-- 4 Native BUTTON Option Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
             ${currentSec.choices.map((choice, idx) => {
               const opt = optionColors[idx];
@@ -473,12 +537,12 @@ class SlideController {
               onclick="slideApp.revealAnswer()" 
               class="px-6 py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 mx-auto transition transform hover:scale-105 active:scale-95">
               <i data-lucide="lightbulb" class="w-4 h-4 fill-white"></i>
-              <span>Xem Đáp Án Đúng & Giải Thích</span>
+              <span>Xem Đáp Án Đúng & Thống Kê Chi Tiết</span>
             </button>
           </div>
 
-          <!-- Explanation & Key Takeaways Card (Revealed on click/vote) -->
-          <div id="explanation-box" class="hidden p-5 sm:p-6 md:p-8 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl space-y-3 sm:space-y-4 animate-fade-in">
+          <!-- Explanation & Class Analytics Box -->
+          <div id="explanation-box" class="hidden p-5 sm:p-6 md:p-8 rounded-3xl bg-slate-900/95 border-2 border-emerald-500/80 shadow-2xl space-y-4 animate-fade-in">
             <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
               <div id="explain-status-header">
                 <span class="text-sm md:text-base font-black uppercase text-emerald-400 flex items-center gap-2">
@@ -486,10 +550,16 @@ class SlideController {
                   Đáp án chính xác: Phương án ${["A", "B", "C", "D"][currentSec.correct]}
                 </span>
               </div>
-              <span class="text-[11px] text-slate-400 font-semibold hidden sm:inline">Tóm tắt củng cố bài học</span>
+              <span class="text-[11px] text-slate-400 font-semibold hidden sm:inline">Phân tích kết quả lớp học</span>
             </div>
 
-            <p class="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-medium">${currentSec.explanation || "Chúc mừng bạn đã nắm vững nội dung của đề mục này!"}</p>
+            <!-- Khung thống kê sư phạm cho Giáo Viên -->
+            <div id="class-analytics-content"></div>
+
+            <div class="space-y-1 pt-1">
+              <span class="text-xs font-bold text-indigo-300 block">💡 Giải thích chi tiết:</span>
+              <p class="text-xs sm:text-sm md:text-base text-slate-200 leading-relaxed font-medium">${currentSec.explanation || "Chúc mừng bạn đã nắm vững nội dung của đề mục này!"}</p>
+            </div>
 
             ${currentSec.keyTakeaway ? `
               <div class="p-3.5 sm:p-4 rounded-2xl bg-indigo-950/60 border border-indigo-500/40 text-xs sm:text-sm text-indigo-200 font-bold leading-relaxed">
@@ -576,6 +646,8 @@ class SlideController {
         });
       }
     }, 100);
+
+    this.updateLiveVotesDisplay();
   }
 
   toggleQrModal() {
