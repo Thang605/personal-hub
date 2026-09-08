@@ -130,7 +130,9 @@ class BoatHostGame {
   _setupNetworkEvents() {
     // 1. Khi có người chơi tham gia (JOIN)
     this.network.on("join", (msg) => {
-      this._addOrUpdatePlayer(msg.playerId, {
+      const pId = msg.playerId || msg._senderId;
+      if (!pId) return;
+      this._addOrUpdatePlayer(pId, {
         name: msg.name || "Tay chèo",
         avatar: msg.avatar || "🚣‍♂️",
         color: msg.color,
@@ -143,7 +145,8 @@ class BoatHostGame {
     // 2. Khi người chơi chèo (STROKE: L hoặc R)
     this.network.on("stroke", (msg) => {
       if (this.state !== "RACING") return;
-      const boat = this.players.get(msg.playerId);
+      const pId = msg.playerId || msg._senderId;
+      const boat = this.players.get(pId);
       if (boat && !boat.isFinished) {
         this._applyStrokeToBoat(boat, msg.side, msg.power || 1.0, msg.combo || 1);
       }
@@ -152,7 +155,8 @@ class BoatHostGame {
     // 3. Khi người chơi bứt tốc (BOOST)
     this.network.on("boost", (msg) => {
       if (this.state !== "RACING") return;
-      const boat = this.players.get(msg.playerId);
+      const pId = msg.playerId || msg._senderId;
+      const boat = this.players.get(pId);
       if (boat && !boat.isFinished) {
         boat.speed += 3.5;
         this._createSplash(boat.x, boat.y, "#38bdf8", 25);

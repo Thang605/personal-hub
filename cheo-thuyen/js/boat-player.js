@@ -100,6 +100,7 @@ class BoatPlayerApp {
       color: this.color
     });
 
+    this.playerId = this.network.playerId;
     this._switchView("LOBBY");
   }
 
@@ -130,13 +131,15 @@ class BoatPlayerApp {
     });
 
     this.network.on("sync_race", (msg) => {
-      if (this.gameState === "RACING") {
-        this.currentDistance = msg.distance;
-        this.currentSpeed = msg.speed;
-        this.currentRank = msg.rank;
-        this.totalPlayers = msg.totalPlayers;
-        this._updateRaceHud();
+      if (this.gameState !== "RACING" && this.gameState !== "FINISHED") {
+        this.gameState = "RACING";
+        this._switchView("RACING");
       }
+      this.currentDistance = msg.distance;
+      this.currentSpeed = msg.speed;
+      this.currentRank = msg.rank;
+      this.totalPlayers = msg.totalPlayers;
+      this._updateRaceHud();
     });
 
     this.network.on("race_finished", (msg) => {
@@ -237,6 +240,7 @@ class BoatPlayerApp {
       // Gửi gói tin tức thì lên Host
       this.network.sendToHost({
         type: "STROKE",
+        playerId: this.network.playerId || this.playerId,
         side: side,
         power: 1.0,
         combo: this.combo,
@@ -255,6 +259,7 @@ class BoatPlayerApp {
 
       this.network.sendToHost({
         type: "STROKE",
+        playerId: this.network.playerId || this.playerId,
         side: side,
         power: 0.2,
         combo: 0
@@ -284,6 +289,7 @@ class BoatPlayerApp {
 
     this.network.sendToHost({
       type: "BOOST",
+      playerId: this.network.playerId || this.playerId,
       boostMultiplier: 2.0
     });
 

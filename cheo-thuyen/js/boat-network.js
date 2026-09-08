@@ -425,6 +425,7 @@ class BoatNetwork {
     return {
       _msgId: "m_" + Date.now().toString(36) + "_" + Math.random().toString(36).substring(2, 6),
       _senderId: this.playerId,
+      playerId: this.playerId,
       _time: Date.now(),
       ...payload
     };
